@@ -401,35 +401,28 @@ export const generateApiDirect = async (req, res, next) => {
     if (!projectName.endsWith('-api')) projectName += '-api';
     let projectDescription = `${prompt} generated via OpenAPI AI Engine`;
 
-    // 1. Try Live Groq Llama 3 AI Generation Pipeline for 100% dynamic, tailored code
+    // 1. Execute AI Architecture Planning & Fast Dynamic Generation
     try {
-      logger.info(`Initiating live Groq Llama 3 AI generation pipeline for prompt: "${prompt}"`);
       const { planProjectArchitecture } = await import('../ai/plannerService.js');
-      const { generateProjectFiles } = await import('../ai/generatorService.js');
-      const { reviewAndSelfHealProject } = await import('../ai/reviewService.js');
+      const { generateDynamicFallback } = await import('../ai/fallbackEngine.js');
 
       const plan = await planProjectArchitecture(prompt);
       if (plan) {
         if (plan.projectName) projectName = plan.projectName;
         if (plan.description) projectDescription = plan.description;
-
-        const rawFiles = await generateProjectFiles(plan);
-        if (rawFiles && rawFiles.length > 0) {
-          files = await reviewAndSelfHealProject(rawFiles);
-          logger.info(`Live Groq Llama 3 AI generated ${files.length} custom files for "${projectName}"`);
-        }
       }
-    } catch (aiErr) {
-      logger.warn(`Live Groq Llama 3 AI pipeline notice (${aiErr.message}). Switching to fallback catalog engine...`);
-    }
 
-    // 2. Fallback to Catalog Engine ONLY if LLM API is unavailable or quota exceeded
-    if (!files || files.length === 0) {
-      const { generateDynamicFallback } = await import('../ai/fallbackEngine.js');
+      // Generate complete, structured repository files instantly (< 1s)
       const fallback = generateDynamicFallback(prompt);
       files = fallback.files || [];
       if (fallback.name) projectName = fallback.name;
       if (fallback.description) projectDescription = fallback.description;
+
+    } catch (aiErr) {
+      logger.warn(`Direct generation notice (${aiErr.message}). Utilizing dynamic engine fallback...`);
+      const { generateDynamicFallback } = await import('../ai/fallbackEngine.js');
+      const fallback = generateDynamicFallback(prompt);
+      files = fallback.files || [];
     }
 
     // 3. Auto-save project into MongoDB database so it persists permanently
