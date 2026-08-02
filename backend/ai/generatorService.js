@@ -159,7 +159,11 @@ export const generateProjectFiles = async (plan, onProgress) => {
   }
 
   // Pre-return self-check and deduplication
-  return selfCheckGeneratedFiles(generatedFiles);
+  const validFiles = selfCheckGeneratedFiles(generatedFiles);
+  if (validFiles.length === 0) {
+    throw new Error('Module generation returned 0 files, initiating dynamic fallback');
+  }
+  return validFiles;
 };
 
 export default generateProjectFiles;

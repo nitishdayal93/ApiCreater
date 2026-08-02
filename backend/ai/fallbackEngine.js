@@ -1254,6 +1254,16 @@ const seedDB = async () => {
 seedDB();`
   });
 
+  files.push({
+    path: 'Dockerfile',
+    content: `FROM node:20-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nEXPOSE 5000\nCMD ["npm", "start"]\n`
+  });
+
+  files.push({
+    path: 'docker-compose.yml',
+    content: `version: '3.8'\nservices:\n  api:\n    build: .\n    ports:\n      - "5000:5000"\n    environment:\n      - PORT=5000\n      - NODE_ENV=production\n`
+  });
+
   // postman_collection.json
   const postmanItems = [
     {

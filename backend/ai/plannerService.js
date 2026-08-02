@@ -382,21 +382,31 @@ export class ValidationLayer {
     }
 
     // Convert strings to structured module tier objects for generatorService compatibility
-    const formattedModules = moduleNames.map(modName => {
-      const entName = modName.replace(/s$|Module$/i, '').trim() || 'Core';
-      const entCapitalized = entName.charAt(0).toUpperCase() + entName.slice(1);
-      const entLower = entName.toLowerCase();
-      return {
-        name: modName.includes('Module') || modName.includes('Tier') ? modName : `${modName} Module`,
-        description: `${modName} architecture tier with REST routes, controllers, and services`,
+    const formattedModules = [
+      {
+        name: "Core Architecture & Config",
+        description: "Base app configuration, Docker containerization, package dependencies, README, and server entry",
         files: [
-          `src/models/${entCapitalized}.js`,
-          `src/services/${entLower}Service.js`,
-          `src/controllers/${entLower}Controller.js`,
-          `src/routes/${entLower}Routes.js`
+          "package.json", ".env.example", "Dockerfile", "docker-compose.yml",
+          "README.md", "src/server.js", "src/config/db.js"
         ]
-      };
-    });
+      },
+      ...moduleNames.filter(m => m !== 'Core Architecture & Config').map(modName => {
+        const entName = modName.replace(/s$|Module$/i, '').trim() || 'Core';
+        const entCapitalized = entName.charAt(0).toUpperCase() + entName.slice(1);
+        const entLower = entName.toLowerCase();
+        return {
+          name: modName.includes('Module') || modName.includes('Tier') ? modName : `${modName} Module`,
+          description: `${modName} architecture tier with REST routes, controllers, and services`,
+          files: [
+            `src/models/${entCapitalized}.js`,
+            `src/services/${entLower}Service.js`,
+            `src/controllers/${entLower}Controller.js`,
+            `src/routes/${entLower}Routes.js`
+          ]
+        };
+      })
+    ];
 
     // 7. Repair Features
     let features = Array.isArray(rawBlueprint.features) ? rawBlueprint.features : [];
@@ -556,6 +566,7 @@ export const planProjectArchitecture = async (promptText = '') => {
     permissions: ['create', 'read', 'update', 'delete', 'bulkDelete'],
     primaryKeys: ['_id'],
     foreignKeys: ['userId'],
+    docker: 'Dockerfile + docker-compose.yml with MongoDB service',
     dependencies: [
       'express',
       validatedBlueprint.database.type === 'MongoDB' ? 'mongoose' : 'pg',
@@ -566,7 +577,10 @@ export const planProjectArchitecture = async (promptText = '') => {
       'dotenv'
     ],
     environmentVariables: ['PORT', 'NODE_ENV', 'MONGO_URI', 'JWT_SECRET', 'JWT_EXPIRE'],
-    generatedFileList: []
+    generatedFileList: [
+      'package.json', '.env.example', 'Dockerfile', 'docker-compose.yml',
+      'README.md', 'src/server.js'
+    ]
   };
 };
 
