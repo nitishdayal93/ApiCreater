@@ -195,12 +195,13 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
   };
 
   const hasFiles = generatedFiles.length > 0;
-  const isInitialState = !hasFiles && messages.length <= 1;
+  const showWorkspace = hasFiles || isGenerating;
+  const isInitialState = !showWorkspace && messages.length <= 1;
 
   return (
     <div className="flex-1 flex flex-col md:flex-row h-full bg-[#06090e] overflow-hidden font-sans">
-      {/* Mobile Tab Switcher Bar (Visible only on mobile when files are generated) */}
-      {hasFiles && (
+      {/* Mobile Tab Switcher Bar (Visible only on mobile when files are generated or generating) */}
+      {showWorkspace && (
         <div className="md:hidden flex items-center bg-[#090d13] border-b border-slate-800 p-1 shrink-0">
           <button
             onClick={() => setMobileTab('chat')}
@@ -225,7 +226,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
       )}
 
       {/* Left / Main Chat Area */}
-      <div className={`flex-col bg-[#06090e] h-full transition-all duration-300 ${hasFiles
+      <div className={`flex-col bg-[#06090e] h-full transition-all duration-300 ${showWorkspace
           ? `w-full md:w-5/12 border-r border-slate-800/80 ${mobileTab === 'chat' ? 'flex' : 'hidden md:flex'}`
           : 'flex w-full max-w-4xl mx-auto'
         }`}>
@@ -410,24 +411,42 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
         )}
       </div>
 
-      {/* Right Workspace Column - Opens Dynamically ONLY After Backend Generates Files */}
-      {hasFiles && (
-        <div className={`w-full md:w-7/12 flex-col p-2 md:p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-right-8 ${mobileTab === 'workspace' ? 'flex' : 'hidden md:flex'
-          }`}>
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full overflow-hidden">
-            <div className="md:col-span-5 h-64 md:h-full overflow-hidden">
-              <ProjectTree
-                files={generatedFiles}
-                selectedFile={selectedFile}
-                onSelectFile={setSelectedFile}
-                onDownloadZip={handleDownloadCurrentZip}
-              />
-            </div>
+      {/* Right Workspace Column - Opens Instantly when prompt is sent */}
+      {showWorkspace && (
+        <div className={`w-full md:w-7/12 flex-col p-2 md:p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-300 ${
+          mobileTab === 'workspace' ? 'flex' : 'hidden md:flex'
+        }`}>
+          {hasFiles ? (
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full overflow-hidden">
+              <div className="md:col-span-5 h-64 md:h-full overflow-hidden">
+                <ProjectTree
+                  files={generatedFiles}
+                  selectedFile={selectedFile}
+                  onSelectFile={setSelectedFile}
+                  onDownloadZip={handleDownloadCurrentZip}
+                />
+              </div>
 
-            <div className="md:col-span-7 h-full overflow-hidden flex-1">
-              <CodeViewer selectedFile={selectedFile} />
+              <div className="md:col-span-7 h-full overflow-hidden flex-1">
+                <CodeViewer selectedFile={selectedFile} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex-1 bg-[#090d13] border border-slate-800/80 rounded-2xl p-6 flex flex-col items-center justify-center space-y-4 animate-pulse">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
+              </div>
+              <div className="text-center space-y-1.5 max-w-sm">
+                <h3 className="text-sm font-bold text-white tracking-tight">Generating API Architecture Workspace</h3>
+                <p className="text-xs text-slate-400">OpenAPI AI Engine is assembling models, controllers, routes, and Docker configuration...</p>
+              </div>
+              <div className="w-full max-w-md space-y-2 pt-2">
+                <div className="h-3 bg-slate-800/80 rounded-full w-3/4 animate-pulse"></div>
+                <div className="h-3 bg-slate-800/80 rounded-full w-1/2 animate-pulse"></div>
+                <div className="h-3 bg-slate-800/80 rounded-full w-5/6 animate-pulse"></div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
