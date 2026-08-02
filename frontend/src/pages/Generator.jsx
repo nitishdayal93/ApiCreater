@@ -333,39 +333,17 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${prompt.trim()
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    prompt.trim()
                       ? 'bg-[#00E676] text-black hover:bg-[#00C853] shadow-md active:scale-95 cursor-pointer'
                       : 'bg-[#252d3a] text-slate-500 cursor-not-allowed'
-                    }`}
+                  }`}
                   title="Generate API"
                 >
                   <ArrowUp className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
             </div>
-
-            {/* Sample Prompts Suggestion Cards - ChatGPT Grid Style */}
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {samplePrompts.map((preset, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(preset.prompt)}
-                  className="p-3.5 bg-[#121721] hover:bg-[#181f2c] border border-slate-800/90 hover:border-slate-600 rounded-2xl text-left transition-all group shadow-sm flex flex-col justify-between"
-                >
-                  <div className="text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
-                    {preset.title}
-                  </div>
-                  <div className="text-[11px] text-slate-400 font-normal line-clamp-1 mt-0.5">
-                    {preset.subtitle}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Footer Disclaimer */}
-            <p className="text-[11px] text-slate-500 font-normal pt-2">
-              OpenAPI AI can make mistakes. Verify important API configurations before deployment.
-            </p>
           </div>
         ) : (
           /* CONDITION 2: Active Chat Stream View (After Prompt Sent) */
