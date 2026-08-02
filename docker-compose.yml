@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  database:
+    image: mongo:latest
+    container_name: openapi-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - openapi-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: openapi-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://database:27017/openapi-ai
+      - JWT_SECRET=your_docker_env_jwt_secret_key
+      - JWT_REFRESH_SECRET=your_docker_env_refresh_secret
+      - CLIENT_URL=http://localhost:5173
+      - CORS_ORIGIN=http://localhost:5173
+    depends_on:
+      - database
+    networks:
+      - openapi-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: openapi-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - openapi-network
+
+volumes:
+  mongo_data:
+
+networks:
+  openapi-network:
+    driver: bridge

@@ -1,0 +1,32 @@
+# Dependecies
+node_modules/
+
+# Local env files containing keys and secrets
+.env
+.env.local
+.env.production
+.env.development
+.env.staging
+
+# Build outputs
+dist/
+build/
+out/
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# VS Code and temporary workspace folders
+.vscode/
+.idea/
+.env.test
+temp/
+tmp/
+generated_apis/

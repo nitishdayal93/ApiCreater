@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenAPI - AI Backend Repository Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              emerald: {
+                400: '#34d399',
+                500: '#10b981',
+                600: '#059669',
+              },
+              neon: {
+                400: '#00FF87',
+                500: '#00E676',
+                600: '#00C853',
+              },
+              dark: {
+                950: '#06090e',
+                900: '#090d13',
+                850: '#0d1118',
+                800: '#12161f',
+                750: '#161c27',
+                700: '#1e2535',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #06090e;
+        color: #f8fafc;
+      }
+      code, pre { font-family: 'Fira Code', monospace; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: #090d13; }
+      ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+    </style>
+  </head>
+  <body class="bg-[#06090e] text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-black">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

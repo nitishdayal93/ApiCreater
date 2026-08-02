@@ -1,0 +1,43 @@
+name: OpenAPI AI CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout repository source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install Monorepo Root Dependencies
+      run: npm install
+
+    - name: Install Backend dependencies
+      run: npm install --prefix backend
+
+    - name: Install Frontend dependencies
+      run: npm install --prefix frontend
+
+    - name: Run Backend Health and Encryption Tests
+      run: npm run test --prefix backend
+
+    - name: Build Frontend Application
+      run: npm run build --prefix frontend
+      env:
+        VITE_API_URL: https://api.example.com
+        VITE_APP_NAME: "OpenAPI AI Production"
