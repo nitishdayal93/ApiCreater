@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2
+  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database
 } from 'lucide-react';
 import ChatBubble from '../components/ChatBubble';
 import ProjectTree from '../components/generator/ProjectTree';
@@ -237,7 +237,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
             </div>
 
             {/* ChatGPT Centered Input Box */}
-            <div className="w-full bg-[#0b1017]/90 border border-slate-800 focus-within:border-emerald-500/80 rounded-3xl p-5 shadow-2xl space-y-4 transition-all">
+            <div className="w-full bg-[#0d141e]/90 border border-slate-700/60 focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-3xl p-4 shadow-2xl transition-all space-y-2">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -249,23 +249,37 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 }}
                 placeholder="Describe your backend API requirements... (e.g. create student management rest api)"
                 rows={3}
-                className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-500 focus:outline-none resize-none font-medium leading-relaxed"
+                className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-1"
               />
 
-              <div className="flex items-center justify-between pt-3 border-t border-slate-800/80">
-                <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                  <span>Press</span>
-                  <kbd className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded font-mono text-[10px] border border-slate-700">Enter ↵</kbd>
-                  <span>to generate</span>
-                </span>
+              <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-xl text-[11px] text-slate-300 font-medium">
+                    <Database className="w-3 h-3 text-emerald-400" />
+                    <select
+                      value={database}
+                      onChange={(e) => setDatabase(e.target.value)}
+                      className="bg-transparent focus:outline-none text-slate-200 cursor-pointer text-[11px] font-semibold"
+                    >
+                      <option value="MongoDB" className="bg-[#0b1017] text-slate-200">MongoDB</option>
+                      <option value="PostgreSQL" className="bg-[#0b1017] text-slate-200">PostgreSQL</option>
+                      <option value="MySQL" className="bg-[#0b1017] text-slate-200">MySQL</option>
+                      <option value="SQLite" className="bg-[#0b1017] text-slate-200">SQLite</option>
+                    </select>
+                  </div>
+
+                  <span className="hidden sm:inline text-[11px] text-slate-500 font-medium">
+                    <kbd className="px-1.5 py-0.5 bg-slate-800/70 text-slate-400 rounded text-[10px]">Enter ↵</kbd> to generate
+                  </span>
+                </div>
 
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className="flex items-center gap-2.5 bg-[#00E676] hover:bg-[#00C853] text-black font-extrabold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-30 shadow-lg shadow-emerald-500/25 active:scale-95"
+                  className="w-9 h-9 rounded-full bg-[#00E676] hover:bg-[#00C853] disabled:bg-slate-800 text-black disabled:text-slate-600 flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 disabled:shadow-none active:scale-95"
+                  title="Generate API"
                 >
-                  <span>Generate API</span>
-                  <Send className="w-3.5 h-3.5 stroke-[3]" />
+                  <ArrowUp className="w-5 h-5 stroke-[2.5]" />
                 </button>
               </div>
             </div>
@@ -314,7 +328,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
             {/* Bottom Input Bar for Active Chat */}
             <div className="p-4 bg-[#090d13] border-t border-slate-800/80 shrink-0">
-              <div className="relative">
+              <div className="bg-[#0d141e]/90 border border-slate-700/60 focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-3xl p-3 shadow-xl transition-all flex items-end gap-2">
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -326,14 +340,15 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                   }}
                   placeholder="Ask a follow-up or specify changes... (e.g. add JWT authentication)"
                   rows={2}
-                  className="w-full bg-[#06090e] border border-slate-700/80 rounded-2xl pl-4 pr-12 py-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 resize-none font-medium"
+                  className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-1 py-1"
                 />
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className="absolute right-2.5 bottom-3.5 p-2 bg-[#00E676] hover:bg-[#00C853] text-black rounded-xl disabled:opacity-40 transition-all shadow-md shadow-emerald-500/20"
+                  className="w-8 h-8 rounded-full bg-[#00E676] hover:bg-[#00C853] disabled:bg-slate-800 text-black disabled:text-slate-600 flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 disabled:shadow-none active:scale-95 shrink-0"
+                  title="Send"
                 >
-                  <Send className="w-4 h-4 stroke-[3]" />
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
                 </button>
               </div>
             </div>
