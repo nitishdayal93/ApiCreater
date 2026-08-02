@@ -43,6 +43,9 @@ export const request = async (endpoint, options = {}) => {
   const data = await response.json();
 
   if (!response.ok) {
+    if (response.status === 401) {
+      clearAuthTokens();
+    }
     const errorMsg = data.error || data.message || `Request failed with status ${response.status}`;
     throw new Error(errorMsg);
   }

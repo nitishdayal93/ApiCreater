@@ -1,5 +1,5 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -18,9 +18,6 @@ import adminRoutes from './routes/admin.js';
 import healthRoutes from './routes/health.js';
 import jobRoutes from './routes/jobRoutes.js';
 import knowledgeRoutes from './routes/knowledgeRoutes.js';
-
-// Load environmental variables
-dotenv.config();
 
 // Force dev server port to 5001 to bypass OS environment blocks
 if (process.env.NODE_ENV !== 'production') {
