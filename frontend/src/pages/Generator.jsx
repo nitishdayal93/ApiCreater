@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database, Plus, Globe, Sparkles, Menu, FolderArchive
+  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database, Plus, Globe, Sparkles
 } from 'lucide-react';
 import ChatBubble from '../components/ChatBubble';
 import ProjectTree from '../components/generator/ProjectTree';
@@ -8,7 +8,7 @@ import CodeViewer from '../components/generator/CodeViewer';
 import api from '../services/api';
 import { downloadProjectZip } from '../utils/zipDownload';
 
-export default function Generator({ onProjectGenerated, activeProject, activeChatId, onOpenMobileMenu }) {
+export default function Generator({ onProjectGenerated, activeProject, activeChatId }) {
   const [prompt, setPrompt] = useState('');
   const [database, setDatabase] = useState('MongoDB');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -204,21 +204,19 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
         <div className="md:hidden flex items-center bg-[#090d13] border-b border-slate-800 p-1 shrink-0">
           <button
             onClick={() => setMobileTab('chat')}
-            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${
-              mobileTab === 'chat'
+            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'chat'
                 ? 'bg-slate-800 text-emerald-400 border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <span>💬 Chat Stream</span>
           </button>
           <button
             onClick={() => setMobileTab('workspace')}
-            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${
-              mobileTab === 'workspace'
+            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${mobileTab === 'workspace'
                 ? 'bg-slate-800 text-emerald-400 border border-slate-700'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <FolderArchive className="w-3.5 h-3.5" />
             <span>Workspace ({generatedFiles.length})</span>
@@ -227,29 +225,17 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
       )}
 
       {/* Left / Main Chat Area */}
-      <div className={`flex-col bg-[#06090e] h-full transition-all duration-300 ${
-        hasFiles 
-          ? `w-full md:w-5/12 border-r border-slate-800/80 ${mobileTab === 'chat' ? 'flex' : 'hidden md:flex'}` 
+      <div className={`flex-col bg-[#06090e] h-full transition-all duration-300 ${hasFiles
+          ? `w-full md:w-5/12 border-r border-slate-800/80 ${mobileTab === 'chat' ? 'flex' : 'hidden md:flex'}`
           : 'flex w-full max-w-4xl mx-auto'
-      }`}>
+        }`}>
         {/* Top Header Bar */}
-        <div className="h-[56px] px-4 md:px-6 border-b border-slate-800/80 bg-[#090d13] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={onOpenMobileMenu}
-              className="md:hidden p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition-all"
-              title="Open Sidebar"
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-[#091510] border border-emerald-500/80 flex items-center justify-center text-emerald-400 font-extrabold shadow-md shadow-emerald-500/25">
-                <Code2 className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
-              </div>
-              <h2 className="font-extrabold text-sm text-white tracking-tight">OpenAPI Studio</h2>
+        <div className="h-[53px] px-4 md:px-6 border-b border-slate-800/80 bg-[#090d13] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#091510] border border-emerald-500/80 flex items-center justify-center text-emerald-400 font-extrabold shadow-md shadow-emerald-500/25">
+              <Code2 className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
             </div>
+            <h2 className="font-extrabold text-sm text-white tracking-tight hidden sm:block">OpenAPI Studio</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -269,7 +255,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 </span>
               </>
             )}
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-3 py-1 rounded-full uppercase">
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
               GROQ LLAMA 3
             </span>
           </div>
@@ -277,14 +263,14 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
         {/* CONDITION 1: ChatGPT-Style Centered Landing Page (Before Prompt Sent) */}
         {isInitialState ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 text-center max-w-3xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 text-center max-w-3xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
             {/* Hero Heading - ChatGPT Style */}
-            <div className="space-y-3 flex flex-col items-center">
-              <div className="w-12 h-12 rounded-full bg-[#141a23] border border-slate-700/80 flex items-center justify-center text-emerald-400 shadow-xl mb-1">
+            <div className="space-y-2.5 flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-[#181d26] border border-slate-700/80 flex items-center justify-center text-emerald-400 shadow-xl mb-1">
                 <Sparkles className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
               </div>
 
-              <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-xl md:text-3xl font-semibold text-white tracking-tight">
                 What backend API do you want to build?
               </h1>
 
@@ -347,11 +333,10 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    prompt.trim()
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${prompt.trim()
                       ? 'bg-[#00E676] text-black hover:bg-[#00C853] shadow-md active:scale-95 cursor-pointer'
                       : 'bg-[#252d3a] text-slate-500 cursor-not-allowed'
-                  }`}
+                    }`}
                   title="Generate API"
                 >
                   <ArrowUp className="w-4 h-4 stroke-[3]" />
@@ -360,18 +345,17 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
             </div>
 
             {/* Sample Prompts Suggestion Cards - ChatGPT Grid Style */}
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
               {samplePrompts.map((preset, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSend(preset.prompt)}
-                  className="p-4 bg-[#121721] hover:bg-[#181f2c] border border-slate-800/90 hover:border-slate-600 rounded-2xl text-left transition-all group shadow-sm flex flex-col justify-between"
+                  className="p-3.5 bg-[#121721] hover:bg-[#181f2c] border border-slate-800/90 hover:border-slate-600 rounded-2xl text-left transition-all group shadow-sm flex flex-col justify-between"
                 >
-                  <div className="text-xs font-semibold text-slate-200 group-hover:text-emerald-400 transition-colors flex items-center justify-between">
-                    <span>{preset.title}</span>
-                    <span className="text-slate-600 group-hover:text-emerald-400 transition-colors">→</span>
+                  <div className="text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                    {preset.title}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-normal line-clamp-1 mt-1">
+                  <div className="text-[11px] text-slate-400 font-normal line-clamp-1 mt-0.5">
                     {preset.subtitle}
                   </div>
                 </button>
@@ -434,11 +418,10 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                    prompt.trim()
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${prompt.trim()
                       ? 'bg-[#00E676] text-black hover:bg-[#00C853] shadow-md active:scale-95 cursor-pointer'
                       : 'bg-[#252d3a] text-slate-500 cursor-not-allowed'
-                  }`}
+                    }`}
                   title="Send"
                 >
                   <ArrowUp className="w-4 h-4 stroke-[3]" />
@@ -451,9 +434,8 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
       {/* Right Workspace Column - Opens Dynamically ONLY After Backend Generates Files */}
       {hasFiles && (
-        <div className={`w-full md:w-7/12 flex-col p-2 md:p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-right-8 ${
-          mobileTab === 'workspace' ? 'flex' : 'hidden md:flex'
-        }`}>
+        <div className={`w-full md:w-7/12 flex-col p-2 md:p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-right-8 ${mobileTab === 'workspace' ? 'flex' : 'hidden md:flex'
+          }`}>
           <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full overflow-hidden">
             <div className="md:col-span-5 h-64 md:h-full overflow-hidden">
               <ProjectTree
@@ -473,3 +455,6 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
     </div>
   );
 }
+
+
+
