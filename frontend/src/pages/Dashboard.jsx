@@ -10,22 +10,34 @@ function TiltCard({ children, className = "", style = {} }) {
   const cardRef = React.useRef(null);
   const rafId = React.useRef(null);
 
-  const handleMouseMove = (e) => {
-    if (rafId.current) cancelAnimationFrame(rafId.current);
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
+  const handleTilt = (clientX, clientY, rect) => {
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
 
     rafId.current = requestAnimationFrame(() => {
       if (cardRef.current) {
-        const tiltX = ((-y / rect.height) * 10).toFixed(2);
-        const tiltY = ((x / rect.width) * 10).toFixed(2);
+        const tiltX = ((-y / rect.height) * 12).toFixed(2);
+        const tiltY = ((x / rect.width) * 12).toFixed(2);
         cardRef.current.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
       }
     });
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseMove = (e) => {
+    if (rafId.current) cancelAnimationFrame(rafId.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    handleTilt(e.clientX, e.clientY, rect);
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches && e.touches[0]) {
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+      const rect = e.currentTarget.getBoundingClientRect();
+      handleTilt(e.touches[0].clientX, e.touches[0].clientY, rect);
+    }
+  };
+
+  const handleReset = () => {
     if (rafId.current) cancelAnimationFrame(rafId.current);
     if (cardRef.current) {
       cardRef.current.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
@@ -36,7 +48,9 @@ function TiltCard({ children, className = "", style = {} }) {
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+      onMouseLeave={handleReset}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleReset}
       className={`transition-transform duration-150 ease-out will-change-transform ${className}`}
       style={{
         transformStyle: 'preserve-3d',
@@ -333,7 +347,7 @@ export default function Dashboard({ projects, onNewGenerator, onOpenPlayground, 
                 </div>
 
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  Interactive 3D Stage • Move Mouse to Tilt
+                  Interactive 3D Stage • Move Mouse or Touch Screen to Tilt
                 </span>
               </div>
             </div>
