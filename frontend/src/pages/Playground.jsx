@@ -40,11 +40,49 @@ export default function Playground({ projects = [], onOpenMobileMenu }) {
 
   const [copied, setCopied] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
+  const [generatedPresets, setGeneratedPresets] = useState([]);
 
   useEffect(() => {
     const token = getAuthToken();
     if (token) setAuthTokenState(token);
   }, []);
+
+  // Automatically extract real custom endpoints from generated user projects
+  useEffect(() => {
+    if (Array.isArray(projects) && projects.length > 0) {
+      const customEnd = [];
+      projects.forEach(proj => {
+        if (proj.files && Array.isArray(proj.files)) {
+          proj.files.forEach(f => {
+            if (f.path && (f.path.includes('routes') || f.path.includes('server.js'))) {
+              const matches = f.content.match(/router\.(get|post|put|delete)\(['"]([^'"]+)['"]/gi);
+              if (matches) {
+                matches.forEach(m => {
+                  const parts = m.match(/router\.(get|post|put|delete)\(['"]([^'"]+)['"]/i);
+                  if (parts && parts[1] && parts[2]) {
+                    const mthd = parts[1].toUpperCase();
+                    const path = parts[2];
+                    const fullPath = path.startsWith('/api') ? path : `/api${path}`;
+                    if (!customEnd.some(e => e.endpoint === fullPath && e.method === mthd)) {
+                      customEnd.push({
+                        label: `${proj.name || 'Custom API'} (${mthd} ${path})`,
+                        method: mthd,
+                        endpoint: fullPath,
+                        body: mthd !== 'GET' ? '{\n  "name": "Sample Record",\n  "status": "Active"\n}' : ''
+                      });
+                    }
+                  }
+                });
+              }
+            }
+          });
+        }
+      });
+      if (customEnd.length > 0) {
+        setGeneratedPresets(customEnd);
+      }
+    }
+  }, [projects]);
 
   const samplePresets = [
     { label: 'Health Status', method: 'GET', endpoint: '/api/health', body: '' },
@@ -54,6 +92,8 @@ export default function Playground({ projects = [], onOpenMobileMenu }) {
     { label: 'Register User', method: 'POST', endpoint: '/api/auth/register', body: '{\n  "name": "Developer User",\n  "email": "dev@example.com",\n  "password": "Password123!"\n}' },
     { label: 'Login User', method: 'POST', endpoint: '/api/auth/login', body: '{\n  "email": "dev@example.com",\n  "password": "Password123!"\n}' }
   ];
+
+  const allAvailablePresets = [...generatedPresets, ...samplePresets];
 
   const handleSelectPreset = (preset) => {
     setMethod(preset.method);
@@ -236,7 +276,7 @@ export default function Playground({ projects = [], onOpenMobileMenu }) {
           <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
             <Zap className="w-3 h-3 text-emerald-400" /> PRESETS:
           </span>
-          {samplePresets.map((preset, idx) => (
+          {allAvailablePresets.map((preset, idx) => (
             <button
               key={idx}
               onClick={() => handleSelectPreset(preset)}
