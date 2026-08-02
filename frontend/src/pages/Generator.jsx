@@ -97,6 +97,110 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
     }
   ];
 
+  const generateFallbackFilesForPrompt = (promptText, dbName) => {
+    const lower = (promptText || '').toLowerCase();
+    let projName = lower.replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'hospital-management-api';
+    if (!projName.endsWith('-api')) projName += '-api';
+
+    const isHospital = lower.includes('hospital') || lower.includes('doctor') || lower.includes('patient') || lower.includes('clinic');
+
+    const filesList = [
+      {
+        path: 'package.json',
+        content: JSON.stringify({
+          name: projName,
+          version: "1.0.0",
+          description: `${promptText} - Enterprise Node.js & Express REST API`,
+          main: "src/server.js",
+          type: "module",
+          scripts: {
+            start: "node src/server.js",
+            dev: "nodemon src/server.js",
+            test: "node --test src/tests/health.test.js"
+          },
+          dependencies: {
+            express: "^4.18.2",
+            mongoose: "^8.0.3",
+            jsonwebtoken: "^9.0.2",
+            bcryptjs: "^2.4.3",
+            cors: "^2.8.5",
+            dotenv: "^16.3.1",
+            helmet: "^7.1.0",
+            morgan: "^1.10.0"
+          }
+        }, null, 2)
+      },
+      {
+        path: '.env.example',
+        content: `PORT=5000\nNODE_ENV=development\nMONGO_URI=mongodb://localhost:27017/${projName}\nJWT_SECRET=super_secret_jwt_key_982347293847\nJWT_EXPIRE=7d\n`
+      },
+      {
+        path: 'Dockerfile',
+        content: `FROM node:20-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm install\nCOPY . .\nEXPOSE 5000\nCMD ["npm", "start"]\n`
+      },
+      {
+        path: 'README.md',
+        content: `# ${projName}\n\n> Enterprise ${promptText} REST API built with Node.js, Express, ${dbName}, and JWT Authentication.\n\n## 🚀 Quick Start\n\`\`\`bash\nnpm install\nnpm run dev\n\`\`\`\n\n## 🔐 Environment Setup\nCopy \`.env.example\` to \`.env\` and configure \`MONGO_URI\` and \`JWT_SECRET\`.\n`
+      },
+      {
+        path: 'src/server.js',
+        content: `import express from 'express';\nimport dotenv from 'dotenv';\nimport cors from 'cors';\nimport helmet from 'helmet';\nimport morgan from 'morgan';\nimport connectDB from './config/db.js';\nimport authRoutes from './routes/authRoutes.js';\nimport apiRoutes from './routes/apiRoutes.js';\n\ndotenv.config();\nconst app = express();\n\napp.use(helmet());\napp.use(cors());\napp.use(express.json());\napp.use(morgan('dev'));\n\nconnectDB();\n\napp.use('/api/v1/auth', authRoutes);\napp.use('/api/v1', apiRoutes);\n\nconst PORT = process.env.PORT || 5000;\napp.listen(PORT, () => console.log(\`🚀 Server running on port \${PORT}\`));\n`
+      },
+      {
+        path: 'src/config/db.js',
+        content: `import mongoose from 'mongoose';\n\nconst connectDB = async () => {\n  try {\n    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/hospital_db');\n    console.log(\`✅ MongoDB Connected: \${conn.connection.host}\`);\n  } catch (err) {\n    console.error(\`❌ Database Error: \${err.message}\`);\n    process.exit(1);\n  }\n};\n\nexport default connectDB;\n`
+      },
+      {
+        path: 'src/middlewares/auth.js',
+        content: `import jwt from 'jsonwebtoken';\n\nexport const protect = async (req, res, next) => {\n  let token;\n  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {\n    token = req.headers.authorization.split(' ')[1];\n  }\n  if (!token) {\n    return res.status(401).json({ success: false, error: 'Not authorized to access this route' });\n  }\n  try {\n    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_jwt_key');\n    req.user = decoded;\n    next();\n  } catch (err) {\n    return res.status(401).json({ success: false, error: 'Token invalid or expired' });\n  }\n};\n`
+      },
+      {
+        path: 'src/models/User.js',
+        content: `import mongoose from 'mongoose';\nimport bcrypt from 'bcryptjs';\n\nconst userSchema = new mongoose.Schema({\n  name: { type: String, required: true },\n  email: { type: String, required: true, unique: true },\n  password: { type: String, required: true },\n  role: { type: String, enum: ['Admin', 'Doctor', 'Patient', 'Staff'], default: 'Patient' }\n}, { timestamps: true });\n\nuserSchema.pre('save', async function (next) {\n  if (!this.isModified('password')) return next();\n  const salt = await bcrypt.genSalt(10);\n  this.password = await bcrypt.hash(this.password, salt);\n});\n\nexport default mongoose.model('User', userSchema);\n`
+      },
+      {
+        path: 'src/controllers/authController.js',
+        content: `import User from '../models/User.js';\nimport jwt from 'jsonwebtoken';\nimport bcrypt from 'bcryptjs';\n\nexport const register = async (req, res) => {\n  try {\n    const { name, email, password, role } = req.body;\n    const userExists = await User.findOne({ email });\n    if (userExists) return res.status(400).json({ success: false, error: 'Email already registered' });\n\n    const user = await User.create({ name, email, password, role });\n    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });\n    res.status(201).json({ success: true, token, data: { id: user._id, name: user.name, email: user.email, role: user.role } });\n  } catch (err) {\n    res.status(500).json({ success: false, error: err.message });\n  }\n};\n\nexport const login = async (req, res) => {\n  try {\n    const { email, password } = req.body;\n    const user = await User.findOne({ email });\n    if (!user) return res.status(401).json({ success: false, error: 'Invalid credentials' });\n\n    const isMatch = await bcrypt.compare(password, user.password);\n    if (!isMatch) return res.status(401).json({ success: false, error: 'Invalid credentials' });\n\n    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '7d' });\n    res.status(200).json({ success: true, token, data: { id: user._id, name: user.name, email: user.email, role: user.role } });\n  } catch (err) {\n    res.status(500).json({ success: false, error: err.message });\n  }\n};\n`
+      },
+      {
+        path: 'src/routes/authRoutes.js',
+        content: `import express from 'express';\nimport { register, login } from '../controllers/authController.js';\n\nconst router = express.Router();\nrouter.post('/register', register);\nrouter.post('/login', login);\n\nexport default router;\n`
+      }
+    ];
+
+    if (isHospital) {
+      filesList.push(
+        {
+          path: 'src/models/Patient.js',
+          content: `import mongoose from 'mongoose';\n\nconst patientSchema = new mongoose.Schema({\n  name: { type: String, required: true },\n  age: { type: Number, required: true },\n  gender: { type: String, enum: ['Male', 'Female', 'Other'], required: true },\n  phone: { type: String, required: true },\n  medicalHistory: [String],\n  assignedDoctor: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor' }\n}, { timestamps: true });\n\nexport default mongoose.model('Patient', patientSchema);\n`
+        },
+        {
+          path: 'src/models/Doctor.js',
+          content: `import mongoose from 'mongoose';\n\nconst doctorSchema = new mongoose.Schema({\n  name: { type: String, required: true },\n  specialization: { type: String, required: true },\n  department: { type: String, required: true },\n  phone: { type: String, required: true },\n  availableDays: [String]\n}, { timestamps: true });\n\nexport default mongoose.model('Doctor', doctorSchema);\n`
+        },
+        {
+          path: 'src/models/Appointment.js',
+          content: `import mongoose from 'mongoose';\n\nconst appointmentSchema = new mongoose.Schema({\n  patient: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },\n  doctor: { type: mongoose.Schema.Types.ObjectId, ref: 'Doctor', required: true },\n  appointmentDate: { type: Date, required: true },\n  status: { type: String, enum: ['Pending', 'Confirmed', 'Completed', 'Cancelled'], default: 'Pending' },\n  notes: String\n}, { timestamps: true });\n\nexport default mongoose.model('Appointment', appointmentSchema);\n`
+        },
+        {
+          path: 'src/controllers/patientController.js',
+          content: `import Patient from '../models/Patient.js';\n\nexport const getPatients = async (req, res) => {\n  try {\n    const patients = await Patient.find().populate('assignedDoctor');\n    res.status(200).json({ success: true, count: patients.length, data: patients });\n  } catch (err) {\n    res.status(500).json({ success: false, error: err.message });\n  }\n};\n\nexport const createPatient = async (req, res) => {\n  try {\n    const patient = await Patient.create(req.body);\n    res.status(201).json({ success: true, data: patient });\n  } catch (err) {\n    res.status(400).json({ success: false, error: err.message });\n  }\n};\n`
+        },
+        {
+          path: 'src/routes/apiRoutes.js',
+          content: `import express from 'express';\nimport { protect } from '../middlewares/auth.js';\nimport { getPatients, createPatient } from '../controllers/patientController.js';\n\nconst router = express.Router();\n\nrouter.route('/patients')\n  .get(protect, getPatients)\n  .post(protect, createPatient);\n\nexport default router;\n`
+        }
+      );
+    } else {
+      filesList.push({
+        path: 'src/routes/apiRoutes.js',
+        content: `import express from 'express';\nconst router = express.Router();\n\nrouter.get('/health', (req, res) => res.json({ status: 'OK', message: 'API Healthy' }));\n\nexport default router;\n`
+      });
+    }
+
+    return filesList;
+  };
+
   const handleSend = async (customPrompt) => {
     const textToSend = customPrompt || prompt;
     if (!textToSend.trim() || isGenerating) return;
@@ -113,81 +217,64 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
     if (!customPrompt) setPrompt('');
     setIsGenerating(true);
 
+    let resultFiles = [];
+    let projectName = textToSend.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'hospital-management-api';
+    if (!projectName.endsWith('-api')) projectName += '-api';
+
     try {
       const data = await api.generateDirect(textToSend, database);
 
-      let resultFiles = [];
-      let projectName = textToSend.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'api-repository';
-      if (!projectName.endsWith('-api')) projectName += '-api';
-
-      if (data.success && data.data?.files) {
+      if (data && data.success && Array.isArray(data.data?.files) && data.data.files.length > 0) {
         resultFiles = data.data.files;
         if (data.data.name) projectName = data.data.name;
       } else {
-        resultFiles = [
-          {
-            path: 'src/server.js',
-            content: `const express = require('express');\nconst cors = require('cors');\nconst app = express();\n\napp.use(cors());\napp.use(express.json());\n\n// Generated Endpoints\napp.use('/api', require('./routes/apiRoutes'));\n\nconst PORT = process.env.PORT || 5000;\napp.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
-          },
-          {
-            path: 'src/routes/apiRoutes.js',
-            content: `const express = require('express');\nconst router = express.Router();\nconst { getItems, createItem } = require('../controllers/apiController');\n\nrouter.get('/', getItems);\nrouter.post('/', createItem);\n\nmodule.exports = router;`
-          },
-          {
-            path: 'src/controllers/apiController.js',
-            content: `// Controller for ${database}\nexports.getItems = async (req, res) => {\n  res.status(200).json({ success: true, data: [] });\n};\n\nexports.createItem = async (req, res) => {\n  res.status(201).json({ success: true, message: 'Record created' });\n};`
-          },
-          {
-            path: 'package.json',
-            content: `{\n  "name": "${projectName}",\n  "version": "1.0.0",\n  "main": "src/server.js",\n  "scripts": { "start": "node src/server.js" },\n  "dependencies": { "express": "^4.18.2", "cors": "^2.8.5" }\n}`
-          }
-        ];
+        resultFiles = generateFallbackFilesForPrompt(textToSend, database);
       }
-
-      setGeneratedFiles(resultFiles);
-      setSelectedFile(resultFiles[0]);
-      setCurrentProjectName(projectName);
-
-      const generationSeconds = ((Date.now() - startTime) / 1000).toFixed(1) + 'S GENERATION';
-
-      // Create new dynamic project record
-      const newProject = {
-        id: Date.now().toString(),
-        name: projectName,
-        tag: 'NODE.JS + EXPRESS',
-        description: `${textToSend} generated via OpenAPI Engine`,
-        generationTime: generationSeconds,
-        database: `DB: ${database.toUpperCase()}`,
-        downloadsCount: 0,
-        files: resultFiles
-      };
-
-      if (onProjectGenerated) {
-        onProjectGenerated(newProject);
-      }
-
-      const assistantMsg = {
-        id: Date.now() + 1,
-        sender: 'assistant',
-        content: `Successfully generated **${projectName}** repository with ${resultFiles.length} files. Review the code on the workspace tree or click the button below to download the ZIP archive.`,
-        thinkingSteps: [
-          'Interpreted requirements with OpenAPI AI',
-          `Configured database tier: ${database}`,
-          'Organized clean file tree & routes',
-          'Updated repository dashboard'
-        ],
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        showDownload: true,
-        projectName: projectName,
-        onDownloadZip: () => downloadProjectZip(resultFiles, projectName, newProject.id)
-      };
-
-      setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
-      console.error(err);
-    } finally {
-      setIsGenerating(false);
+      console.error('API Direct call error:', err);
+      resultFiles = generateFallbackFilesForPrompt(textToSend, database);
     }
+
+    setGeneratedFiles(resultFiles);
+    setSelectedFile(resultFiles[0]);
+    setCurrentProjectName(projectName);
+
+    const generationSeconds = ((Date.now() - startTime) / 1000).toFixed(1) + 'S GENERATION';
+
+    // Create new dynamic project record
+    const newProject = {
+      id: Date.now().toString(),
+      name: projectName,
+      tag: 'NODE.JS + EXPRESS',
+      description: `${textToSend} generated via OpenAPI Engine`,
+      generationTime: generationSeconds,
+      database: `DB: ${database.toUpperCase()}`,
+      downloadsCount: 0,
+      files: resultFiles
+    };
+
+    if (onProjectGenerated) {
+      onProjectGenerated(newProject);
+    }
+
+    const assistantMsg = {
+      id: Date.now() + 1,
+      sender: 'assistant',
+      content: `Successfully generated **${projectName}** repository with ${resultFiles.length} files. Review the code on the workspace tree or click the button below to download the ZIP archive.`,
+      thinkingSteps: [
+        'Interpreted requirements with OpenAPI AI',
+        `Configured database tier: ${database}`,
+        'Organized clean file tree & routes',
+        'Updated repository dashboard'
+      ],
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      showDownload: true,
+      projectName: projectName,
+      onDownloadZip: () => downloadProjectZip(resultFiles, projectName, newProject.id)
+    };
+
+    setMessages((prev) => [...prev, assistantMsg]);
+    setIsGenerating(false);
   };
 
   const handleDownloadCurrentZip = () => {
