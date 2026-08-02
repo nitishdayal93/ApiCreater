@@ -271,7 +271,12 @@ Output ONLY a single, raw, valid JSON object matching this exact schema:
 
 CRITICAL: Return ONLY raw JSON. No explanation text, no markdown wrappers.`;
 
-  const filesPayload = files.map(f => ({ path: f.path, content: f.content }));
+  const filesPayload = files.map(f => ({
+    path: f.path,
+    content: typeof f.content === 'string' && f.content.length > 3000
+      ? f.content.slice(0, 3000) + '\n... [content truncated for token optimization]'
+      : f.content
+  }));
   const rawUserPrompt = `Perform 8-dimensional static analysis, self-heal, and output validated codebase JSON:\n\n${JSON.stringify(filesPayload)}`;
   const optimized = promptOptimizer.optimizePrompt(rawSystemPrompt, rawUserPrompt);
 

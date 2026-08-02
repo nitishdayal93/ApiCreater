@@ -9,10 +9,10 @@ let currentApiKey = null;
  */
 export const MODEL_CONFIG = {
   PLANNER: 'llama-3.3-70b-versatile',
-  GENERATOR: 'llama-3.1-8b-instant',
-  REVIEWER: 'llama-3.1-8b-instant',
-  FIXER: 'llama-3.1-8b-instant',
-  DEFAULT: 'llama-3.1-8b-instant'
+  GENERATOR: 'llama-3.3-70b-versatile',
+  REVIEWER: 'llama-3.3-70b-versatile',
+  FIXER: 'llama-3.3-70b-versatile',
+  DEFAULT: 'llama-3.3-70b-versatile'
 };
 
 export const getModelForTask = (taskName = 'DEFAULT') => {
