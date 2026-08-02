@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database, Plus, Globe, Sparkles
+  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database, Plus, Globe, Sparkles, FolderArchive, Folder
 } from 'lucide-react';
 import ChatBubble from '../components/ChatBubble';
 import ProjectTree from '../components/generator/ProjectTree';
