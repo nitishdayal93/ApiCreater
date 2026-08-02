@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Menu, Code2, Plus } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Generator from './pages/Generator';
@@ -15,6 +16,7 @@ export default function App() {
   const [historyChats, setHistoryChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [activeProject, setActiveProject] = useState(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Auto-fetch generated projects on load for Sidebar History
   useEffect(() => {
@@ -100,8 +102,35 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06090e] flex overflow-hidden font-sans antialiased text-slate-100 selection:bg-emerald-500 selection:text-black">
-      {/* Left Sidebar */}
+    <div className="min-h-screen bg-[#06090e] flex flex-col md:flex-row overflow-hidden font-sans antialiased text-slate-100 selection:bg-emerald-500 selection:text-black">
+      {/* Mobile Header Bar (< md) */}
+      <div className="md:hidden h-14 px-4 bg-[#090d13] border-b border-slate-800/80 flex items-center justify-between shrink-0 sticky top-0 z-30">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="p-2 rounded-xl bg-slate-800/80 text-slate-200 hover:text-emerald-400 border border-slate-700/60 active:scale-95 transition-all"
+            title="Open Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-[#091510] border border-emerald-500/80 flex items-center justify-center text-emerald-400 font-extrabold">
+              <Code2 className="w-3.5 h-3.5" />
+            </div>
+            <span className="font-bold text-xs text-white tracking-tight">OpenAPI Studio</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => { handleNewChat(); setIsMobileSidebarOpen(false); }}
+          className="flex items-center gap-1.5 bg-[#00E676] hover:bg-[#00C853] text-black font-extrabold px-3 py-1.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 active:scale-95"
+        >
+          <Plus className="w-3.5 h-3.5 stroke-[3]" />
+          <span>New API</span>
+        </button>
+      </div>
+
+      {/* Left Sidebar (Desktop + Mobile Drawer) */}
       <Sidebar
         currentView={currentView}
         setCurrentView={setCurrentView}
@@ -110,10 +139,12 @@ export default function App() {
         onSelectChat={handleSelectChat}
         onNewChat={handleNewChat}
         onLogout={handleLogout}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* Main Workspace Area */}
-      <main className="flex-1 overflow-y-auto h-screen bg-[#06090e]">
+      <main className="flex-1 overflow-y-auto h-[calc(100vh-3.5rem)] md:h-screen bg-[#06090e]">
         {currentView === 'dashboard' && (
           <Dashboard
             projects={projects}

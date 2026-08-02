@@ -25,6 +25,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
   const [generatedFiles, setGeneratedFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [mobileTab, setMobileTab] = useState('chat'); // 'chat' | 'workspace' on mobile
 
   // Sync active project selection from sidebar history
   useEffect(() => {
@@ -197,17 +198,47 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
   const isInitialState = !hasFiles && messages.length <= 1;
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row h-screen bg-[#06090e] overflow-hidden font-sans">
+    <div className="flex-1 flex flex-col md:flex-row h-full bg-[#06090e] overflow-hidden font-sans">
+      {/* Mobile Tab Switcher Bar (Visible only on mobile when files are generated) */}
+      {hasFiles && (
+        <div className="md:hidden flex items-center bg-[#090d13] border-b border-slate-800 p-1 shrink-0">
+          <button
+            onClick={() => setMobileTab('chat')}
+            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${
+              mobileTab === 'chat'
+                ? 'bg-slate-800 text-emerald-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span>💬 Chat Stream</span>
+          </button>
+          <button
+            onClick={() => setMobileTab('workspace')}
+            className={`flex-1 py-2 text-xs font-extrabold rounded-lg transition-all flex items-center justify-center gap-2 ${
+              mobileTab === 'workspace'
+                ? 'bg-slate-800 text-emerald-400 border border-slate-700'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FolderArchive className="w-3.5 h-3.5" />
+            <span>Workspace ({generatedFiles.length})</span>
+          </button>
+        </div>
+      )}
+
       {/* Left / Main Chat Area */}
-      <div className={`flex flex-col bg-[#06090e] h-full transition-all duration-300 ${hasFiles ? 'w-full md:w-5/12 border-r border-slate-800/80' : 'w-full max-w-4xl mx-auto'
-        }`}>
+      <div className={`flex-col bg-[#06090e] h-full transition-all duration-300 ${
+        hasFiles 
+          ? `w-full md:w-5/12 border-r border-slate-800/80 ${mobileTab === 'chat' ? 'flex' : 'hidden md:flex'}` 
+          : 'flex w-full max-w-4xl mx-auto'
+      }`}>
         {/* Top Header Bar */}
-        <div className="h-[53px] px-6 border-b border-slate-800/80 bg-[#090d13] flex items-center justify-between shrink-0">
+        <div className="h-[53px] px-4 md:px-6 border-b border-slate-800/80 bg-[#090d13] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-[#091510] border border-emerald-500/80 flex items-center justify-center text-emerald-400 font-extrabold shadow-md shadow-emerald-500/25">
               <Code2 className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
             </div>
-            <h2 className="font-extrabold text-sm text-white tracking-tight">OpenAPI Studio</h2>
+            <h2 className="font-extrabold text-sm text-white tracking-tight hidden sm:block">OpenAPI Studio</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -219,15 +250,15 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                   title="Download Generated Repository ZIP"
                 >
                   <Download className="w-3.5 h-3.5 stroke-[3]" />
-                  <span>Download ZIP</span>
+                  <span className="hidden sm:inline">Download ZIP</span>
                 </button>
-                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
+                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
                   ({generatedFiles.length} FILES)
                 </span>
               </>
             )}
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
               GROQ LLAMA 3
             </span>
           </div>
@@ -235,18 +266,18 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
         {/* CONDITION 1: ChatGPT-Style Centered Landing Page (Before Prompt Sent) */}
         {isInitialState ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 text-center max-w-3xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
             {/* Hero Heading - ChatGPT Style */}
             <div className="space-y-2.5 flex flex-col items-center">
               <div className="w-12 h-12 rounded-full bg-[#181d26] border border-slate-700/80 flex items-center justify-center text-emerald-400 shadow-xl mb-1">
                 <Sparkles className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
               </div>
 
-              <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
+              <h1 className="text-xl md:text-3xl font-semibold text-white tracking-tight">
                 What backend API do you want to build?
               </h1>
 
-              <p className="text-xs text-slate-400 font-normal max-w-md mx-auto leading-relaxed">
+              <p className="text-xs text-slate-400 font-normal max-w-md mx-auto leading-relaxed px-2">
                 Describe your requirements. OpenAPI AI will plan REST controllers, models, architecture, and package a downloadable ZIP archive.
               </p>
             </div>
@@ -267,9 +298,9 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                 className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-2 py-1"
               />
 
-              <div className="flex items-center justify-between pt-2 px-1">
+              <div className="flex items-center justify-between pt-2 px-1 flex-wrap gap-2">
                 {/* Left ChatGPT Toolbar */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
                     className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
@@ -344,7 +375,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
           /* CONDITION 2: Active Chat Stream View (After Prompt Sent) */
           <>
             {/* Message Stream */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4">
               {messages.map((msg) => (
                 <ChatBubble
                   key={msg.id}
@@ -408,9 +439,11 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
       {/* Right Workspace Column - Opens Dynamically ONLY After Backend Generates Files */}
       {hasFiles && (
-        <div className="w-full md:w-7/12 flex flex-col p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-right-8">
+        <div className={`w-full md:w-7/12 flex-col p-2 md:p-4 bg-[#06090e] h-full overflow-hidden transition-all duration-500 animate-in fade-in slide-in-from-right-8 ${
+          mobileTab === 'workspace' ? 'flex' : 'hidden md:flex'
+        }`}>
           <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 h-full overflow-hidden">
-            <div className="md:col-span-5 h-full overflow-hidden">
+            <div className="md:col-span-5 h-64 md:h-full overflow-hidden">
               <ProjectTree
                 files={generatedFiles}
                 selectedFile={selectedFile}
@@ -419,7 +452,7 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
               />
             </div>
 
-            <div className="md:col-span-7 h-full overflow-hidden">
+            <div className="md:col-span-7 h-full overflow-hidden flex-1">
               <CodeViewer selectedFile={selectedFile} />
             </div>
           </div>
