@@ -161,7 +161,7 @@ export const applyRequestDelay = async () => {
  * 100% Backward Compatible Function Signature: (apiCallFn, maxRetries = 3, options = {})
  */
 export const executeWithRetry = async (apiCallFn, maxRetries = 3, options = {}) => {
-  const timeoutMs = options.timeoutMs || parseInt(process.env.AI_TIMEOUT_MS || '20000', 10);
+  const timeoutMs = options.timeoutMs || parseInt(process.env.AI_TIMEOUT_MS || '45000', 10);
   const startTime = Date.now();
   metrics.totalRequests++;
 
