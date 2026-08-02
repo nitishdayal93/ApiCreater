@@ -14,6 +14,10 @@ export const protect = async (req, res, next) => {
       // Get token from header
       token = req.headers.authorization.split(' ')[1];
 
+      if (!token || token === 'null' || token === 'undefined') {
+        return res.status(401).json({ success: false, error: 'Not authorized, no token provided' });
+      }
+
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_jwt_secret_key');
 
@@ -38,6 +42,28 @@ export const protect = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ success: false, error: 'Not authorized, no token provided' });
   }
+};
+
+// Optional protect routes - Verify JWT if provided, but continue gracefully if missing/expired
+export const optionalProtect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      if (token && token !== 'null' && token !== 'undefined') {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_jwt_secret_key');
+        req.user = await User.findById(decoded.id).select('-password');
+      }
+    } catch (error) {
+      // Token invalid or expired - proceed gracefully without throwing 401 error
+    }
+  }
+
+  next();
 };
 
 // Grant access to specific roles
