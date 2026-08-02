@@ -6,14 +6,440 @@ import UniversalFrameworkEngine from './frameworkEngine.js';
 import EnterpriseChiefArchitectEngine from './chiefArchitectEngine.js';
 import logger from '../utils/logger.js';
 
-/**
- * Prompt Corrector Agent
- * Corrects spelling & typographical errors without altering architecture intent.
- */
+// ============================================================================
+// 1. PROMPT ANALYZER (SOLID: Single Responsibility - Intent Extraction)
+// ============================================================================
+export class PromptAnalyzer {
+  /**
+   * Analyzes raw user prompt to extract architectural cues.
+   * @param {string} promptText 
+   */
+  static analyze(promptText = '') {
+    const raw = promptText.trim();
+    const normalized = raw.toLowerCase();
+
+    // Database Detection
+    let dbType = 'MongoDB';
+    let dbOrm = 'Mongoose';
+
+    if (normalized.includes('postgres') || normalized.includes('postgresql')) {
+      dbType = 'PostgreSQL';
+      dbOrm = normalized.includes('prisma') ? 'Prisma' : 'Sequelize';
+    } else if (normalized.includes('mysql')) {
+      dbType = 'MySQL';
+      dbOrm = 'Sequelize';
+    } else if (normalized.includes('sqlite')) {
+      dbType = 'SQLite';
+      dbOrm = 'Sequelize';
+    } else if (normalized.includes('mongodb') || normalized.includes('mongo')) {
+      dbType = 'MongoDB';
+      dbOrm = 'Mongoose';
+    }
+
+    // Auth & Roles Cues
+    const hasJwt = !normalized.includes('no auth') && !normalized.includes('public api');
+    const hasRefresh = normalized.includes('refresh') || normalized.includes('rotation') || hasJwt;
+
+    return {
+      rawPrompt: raw,
+      normalizedPrompt: normalized,
+      dbType,
+      dbOrm,
+      hasJwt,
+      hasRefresh
+    };
+  }
+}
+
+// ============================================================================
+// 2. DOMAIN DETECTOR (SOLID: Domain Classification Specialist)
+// ============================================================================
+export class DomainDetector {
+  /**
+   * Detects enterprise domain type from prompt text.
+   * @param {string} normalizedPrompt 
+   */
+  static detect(normalizedPrompt = '') {
+    if (normalizedPrompt.includes('hospital') || normalizedPrompt.includes('patient') || normalizedPrompt.includes('doctor') || normalizedPrompt.includes('medical') || normalizedPrompt.includes('clinic')) {
+      return 'Hospital & Healthcare';
+    }
+    if (normalizedPrompt.includes('school') || normalizedPrompt.includes('student') || normalizedPrompt.includes('teacher') || normalizedPrompt.includes('college')) {
+      return 'School & Education Management';
+    }
+    if (normalizedPrompt.includes('e-commerce') || normalizedPrompt.includes('ecommerce') || normalizedPrompt.includes('shop') || normalizedPrompt.includes('cart') || normalizedPrompt.includes('product')) {
+      return 'E-Commerce Platform';
+    }
+    if (normalizedPrompt.includes('blog') || normalizedPrompt.includes('post') || normalizedPrompt.includes('comment') || normalizedPrompt.includes('article')) {
+      return 'Blogging & Content Management';
+    }
+    if (normalizedPrompt.includes('bank') || normalizedPrompt.includes('fintech') || normalizedPrompt.includes('loan') || normalizedPrompt.includes('wallet')) {
+      return 'Fintech & Banking';
+    }
+    if (normalizedPrompt.includes('hr') || normalizedPrompt.includes('employee') || normalizedPrompt.includes('payroll') || normalizedPrompt.includes('attendance')) {
+      return 'Human Resources & Payroll';
+    }
+    if (normalizedPrompt.includes('real estate') || normalizedPrompt.includes('property') || normalizedPrompt.includes('tenant')) {
+      return 'Real Estate Portal';
+    }
+    if (normalizedPrompt.includes('hotel') || normalizedPrompt.includes('booking') || normalizedPrompt.includes('room')) {
+      return 'Hotel & Accommodation Booking';
+    }
+    return 'Custom Enterprise Business Domain';
+  }
+}
+
+// ============================================================================
+// 3. ENTITY EXTRACTOR (SOLID: Domain Entity Extraction Specialist)
+// ============================================================================
+export class EntityExtractor {
+  /**
+   * Extracts primary domain entities as singular capitalized strings.
+   * @param {string} domain 
+   * @param {string} normalizedPrompt 
+   */
+  static extract(domain, normalizedPrompt = '') {
+    const entitySet = new Set();
+
+    // Universal User entity for authentication
+    entitySet.add('User');
+
+    switch (domain) {
+      case 'Hospital & Healthcare':
+        entitySet.add('Patient');
+        entitySet.add('Doctor');
+        entitySet.add('Appointment');
+        entitySet.add('Prescription');
+        entitySet.add('Department');
+        break;
+
+      case 'School & Education Management':
+        entitySet.add('Student');
+        entitySet.add('Teacher');
+        entitySet.add('Course');
+        entitySet.add('Enrollment');
+        entitySet.add('Grade');
+        break;
+
+      case 'E-Commerce Platform':
+        entitySet.add('Product');
+        entitySet.add('Category');
+        entitySet.add('Order');
+        entitySet.add('Payment');
+        entitySet.add('Review');
+        break;
+
+      case 'Blogging & Content Management':
+        entitySet.add('Post');
+        entitySet.add('Comment');
+        entitySet.add('Category');
+        entitySet.add('Tag');
+        break;
+
+      case 'Fintech & Banking':
+        entitySet.add('Account');
+        entitySet.add('Transaction');
+        entitySet.add('Card');
+        entitySet.add('Beneficiary');
+        break;
+
+      case 'Human Resources & Payroll':
+        entitySet.add('Employee');
+        entitySet.add('Department');
+        entitySet.add('Payroll');
+        entitySet.add('Attendance');
+        break;
+
+      default:
+        entitySet.add('Item');
+        entitySet.add('Category');
+        entitySet.add('AuditLog');
+        break;
+    }
+
+    // Additional prompt keyword checks
+    if (normalizedPrompt.includes('billing') || normalizedPrompt.includes('invoice')) {
+      entitySet.add('Invoice');
+    }
+    if (normalizedPrompt.includes('notification')) {
+      entitySet.add('Notification');
+    }
+
+    return Array.from(entitySet);
+  }
+}
+
+// ============================================================================
+// 4. RELATIONSHIP BUILDER (SOLID: Entity Relationship Inference Specialist)
+// ============================================================================
+export class RelationshipBuilder {
+  /**
+   * Infers valid ManyToOne, OneToMany, and ManyToMany relationships among entities.
+   * @param {string[]} entities 
+   */
+  static build(entities = []) {
+    const set = new Set(entities.map(e => e.toLowerCase()));
+    const relationships = [];
+
+    const has = (name) => set.has(name.toLowerCase());
+
+    if (has('Appointment') && has('Patient')) {
+      relationships.push({ from: 'Appointment', to: 'Patient', type: 'ManyToOne' });
+    }
+    if (has('Appointment') && has('Doctor')) {
+      relationships.push({ from: 'Appointment', to: 'Doctor', type: 'ManyToOne' });
+    }
+    if (has('Prescription') && has('Patient')) {
+      relationships.push({ from: 'Prescription', to: 'Patient', type: 'ManyToOne' });
+    }
+    if (has('Prescription') && has('Doctor')) {
+      relationships.push({ from: 'Prescription', to: 'Doctor', type: 'ManyToOne' });
+    }
+    if (has('Order') && has('User')) {
+      relationships.push({ from: 'Order', to: 'User', type: 'ManyToOne' });
+    }
+    if (has('Product') && has('Category')) {
+      relationships.push({ from: 'Product', to: 'Category', type: 'ManyToOne' });
+    }
+    if (has('Comment') && has('Post')) {
+      relationships.push({ from: 'Comment', to: 'Post', type: 'ManyToOne' });
+    }
+    if (has('Comment') && has('User')) {
+      relationships.push({ from: 'Comment', to: 'User', type: 'ManyToOne' });
+    }
+    if (has('Enrollment') && has('Student')) {
+      relationships.push({ from: 'Enrollment', to: 'Student', type: 'ManyToOne' });
+    }
+    if (has('Enrollment') && has('Course')) {
+      relationships.push({ from: 'Enrollment', to: 'Course', type: 'ManyToOne' });
+    }
+
+    return relationships;
+  }
+}
+
+// ============================================================================
+// 5. FEATURE PLANNER (SOLID: Capabilities & Cross-Cutting Feature Specialist)
+// ============================================================================
+export class FeaturePlanner {
+  /**
+   * Plans core architectural features based on user prompt.
+   * @param {string} normalizedPrompt 
+   */
+  static plan(normalizedPrompt = '') {
+    const features = [
+      'CRUD',
+      'Pagination',
+      'Search',
+      'Filtering',
+      'Sorting',
+      'Soft Delete',
+      'Swagger'
+    ];
+
+    if (normalizedPrompt.includes('payment') || normalizedPrompt.includes('stripe')) {
+      features.push('Payment Integration (Stripe Webhooks)');
+    }
+    if (normalizedPrompt.includes('email') || normalizedPrompt.includes('verify')) {
+      features.push('Email Notifications');
+    }
+    if (normalizedPrompt.includes('upload') || normalizedPrompt.includes('image')) {
+      features.push('File Storage & Uploads');
+    }
+    if (normalizedPrompt.includes('chat') || normalizedPrompt.includes('socket')) {
+      features.push('Real-Time WebSockets');
+    }
+
+    return features;
+  }
+}
+
+// ============================================================================
+// 6. SECURITY PLANNER (SOLID: Security & Authentication Specs Specialist)
+// ============================================================================
+export class SecurityPlanner {
+  /**
+   * Plans authentication strategy, refresh token rotation, and RBAC roles.
+   * @param {string} domain 
+   * @param {Object} analysis 
+   */
+  static plan(domain, analysis) {
+    let roles = ['Admin', 'User'];
+
+    if (domain === 'Hospital & Healthcare') {
+      roles = ['Admin', 'Doctor', 'Nurse', 'Receptionist', 'Patient'];
+    } else if (domain === 'School & Education Management') {
+      roles = ['Admin', 'Teacher', 'Student', 'Parent'];
+    } else if (domain === 'E-Commerce Platform') {
+      roles = ['Admin', 'Vendor', 'Customer'];
+    }
+
+    return {
+      authentication: {
+        jwt: analysis.hasJwt,
+        refreshToken: analysis.hasRefresh,
+        roles
+      },
+      security: [
+        'JWT Bearer Token Authentication',
+        'Bcrypt Password Hashing',
+        'Role Based Access Control (RBAC)',
+        'Rate Limiting Middleware',
+        'Helmet Security Headers',
+        'CORS Policy Enforcement'
+      ]
+    };
+  }
+}
+
+// ============================================================================
+// 7. VALIDATION LAYER (SOLID: Blueprint Validation & Automatic Repair Engine)
+// ============================================================================
+export class ValidationLayer {
+  /**
+   * Validates and repairs blueprint object automatically to satisfy schema rules.
+   * @param {Object} rawBlueprint 
+   * @param {string} promptText 
+   */
+  static validateAndRepair(rawBlueprint = {}, promptText = '') {
+    const analysis = PromptAnalyzer.analyze(promptText);
+    const domain = DomainDetector.detect(analysis.normalizedPrompt);
+    const fallbackEntities = EntityExtractor.extract(domain, analysis.normalizedPrompt);
+
+    // 1. Repair Project Name
+    let projectName = rawBlueprint.projectName;
+    if (!projectName || typeof projectName !== 'string' || !projectName.trim()) {
+      projectName = `${domain.split(' ')[0]} Management API`;
+    }
+
+    // 2. Repair Database
+    let database = rawBlueprint.database;
+    if (!database || typeof database !== 'object' || !database.type) {
+      database = {
+        type: analysis.dbType,
+        orm: analysis.dbOrm
+      };
+    }
+
+    // 3. Repair Authentication & Roles
+    let authentication = rawBlueprint.authentication;
+    if (!authentication || typeof authentication !== 'object') {
+      const secPlan = SecurityPlanner.plan(domain, analysis);
+      authentication = secPlan.authentication;
+    } else {
+      authentication.jwt = typeof authentication.jwt === 'boolean' ? authentication.jwt : true;
+      authentication.refreshToken = typeof authentication.refreshToken === 'boolean' ? authentication.refreshToken : true;
+      if (!Array.isArray(authentication.roles) || authentication.roles.length === 0) {
+        authentication.roles = ['Admin', 'User'];
+      }
+      // Deduplicate roles
+      authentication.roles = [...new Set(authentication.roles)];
+    }
+
+    // 4. Repair Entities (Remove duplicates, ensure valid string formatting)
+    let entities = Array.isArray(rawBlueprint.entities) ? rawBlueprint.entities : fallbackEntities;
+    entities = entities.map(e => (typeof e === 'string' ? e.trim() : e?.name || 'Item')).filter(Boolean);
+    // Capitalize & Deduplicate
+    const uniqueEntitiesMap = new Map();
+    entities.forEach(ent => {
+      const formatted = ent.charAt(0).toUpperCase() + ent.slice(1);
+      if (!uniqueEntitiesMap.has(formatted.toLowerCase())) {
+        uniqueEntitiesMap.set(formatted.toLowerCase(), formatted);
+      }
+    });
+    entities = Array.from(uniqueEntitiesMap.values());
+
+    if (entities.length === 0) {
+      entities = ['User', 'Resource'];
+    }
+
+    // 5. Repair Relationships (Verify 'from' and 'to' exist in entities)
+    let relationships = Array.isArray(rawBlueprint.relationships) ? rawBlueprint.relationships : [];
+    const validEntitySet = new Set(entities.map(e => e.toLowerCase()));
+
+    relationships = relationships.filter(rel => {
+      if (!rel || typeof rel !== 'object') return false;
+      if (!rel.from || !rel.to) return false;
+      return validEntitySet.has(rel.from.toLowerCase()) && validEntitySet.has(rel.to.toLowerCase());
+    });
+
+    if (relationships.length === 0) {
+      relationships = RelationshipBuilder.build(entities);
+    }
+
+    // 6. Repair Modules (Remove duplicates, guarantee non-empty formatted objects)
+    let modules = Array.isArray(rawBlueprint.modules) ? rawBlueprint.modules : [];
+    const moduleNames = [];
+
+    modules.forEach(m => {
+      const name = typeof m === 'string' ? m.trim() : m?.name || 'Module';
+      if (name && !moduleNames.some(existing => existing.toLowerCase() === name.toLowerCase())) {
+        moduleNames.push(name);
+      }
+    });
+
+    if (moduleNames.length === 0) {
+      moduleNames.push('Authentication', ...entities.map(e => `${e}s`), 'Billing');
+    }
+
+    // Convert strings to structured module tier objects for generatorService compatibility
+    const formattedModules = moduleNames.map(modName => {
+      const entName = modName.replace(/s$|Module$/i, '').trim() || 'Core';
+      const entCapitalized = entName.charAt(0).toUpperCase() + entName.slice(1);
+      const entLower = entName.toLowerCase();
+      return {
+        name: modName.includes('Module') || modName.includes('Tier') ? modName : `${modName} Module`,
+        description: `${modName} architecture tier with REST routes, controllers, and services`,
+        files: [
+          `src/models/${entCapitalized}.js`,
+          `src/services/${entLower}Service.js`,
+          `src/controllers/${entLower}Controller.js`,
+          `src/routes/${entLower}Routes.js`
+        ]
+      };
+    });
+
+    // 7. Repair Features
+    let features = Array.isArray(rawBlueprint.features) ? rawBlueprint.features : [];
+    features = features.filter(f => typeof f === 'string' && f.trim());
+    if (features.length === 0) {
+      features = FeaturePlanner.plan(analysis.normalizedPrompt);
+    }
+    features = [...new Set(features)];
+
+    // 8. Repair Security & API Style
+    const secPlan = SecurityPlanner.plan(domain, analysis);
+    const security = Array.isArray(rawBlueprint.security) && rawBlueprint.security.length > 0 
+      ? [...new Set(rawBlueprint.security)]
+      : secPlan.security;
+
+    const architecture = rawBlueprint.architecture || 'Clean Architecture';
+    const apiStyle = rawBlueprint.apiStyle || 'RESTful HTTP API';
+
+    return {
+      projectName,
+      domain,
+      architecture,
+      database,
+      authentication,
+      entities,
+      relationships,
+      modules: formattedModules,
+      moduleNames,
+      features,
+      security,
+      apiStyle
+    };
+  }
+}
+
+// ============================================================================
+// BACKWARD COMPATIBILITY HELPERS (Preserved Exports)
+// ============================================================================
+
 export const correctPromptSpelling = async (promptText) => {
   try {
     const groq = getGroqClient();
-    const systemPrompt = `You are a Prompt Corrector Agent. Correct spelling, grammar, and typographical mistakes in the user's software architecture prompt. Preserve all technical context, framework selection, entities, and database preferences. Return ONLY the corrected prompt text without quotes or markdown wrappers.`;
+    const systemPrompt = `You are a Prompt Corrector Agent. Correct spelling, grammar, and typographical mistakes in the user's software architecture prompt. Return ONLY the corrected prompt text.`;
 
     const response = await executeWithRetry(() =>
       groq.chat.completions.create({
@@ -36,510 +462,111 @@ export const correctPromptSpelling = async (promptText) => {
   return promptText;
 };
 
-/**
- * 1. Relationship Inference Engine
- * Automatically infers 1-1, 1-N, N-N relations, join tables, foreign keys, and indexes.
- */
 export const inferRelationships = (entities = [], promptText = '') => {
-  const entityNames = new Set(entities.map(e => (typeof e === 'string' ? e : e.name).toLowerCase()));
-  const inferredRelations = [];
-  const joinTables = [];
-  const foreignKeys = new Set(['userId']);
-  const extraEntities = [];
-
-  const hasEntity = (name) => entityNames.has(name.toLowerCase());
-
-  // User + Order
-  if (hasEntity('User') && hasEntity('Order')) {
-    inferredRelations.push({ from: 'User', to: 'Order', type: 'One-to-Many', foreignKey: 'userId', cascade: 'CASCADE_DELETE' });
-    foreignKeys.add('userId');
-  }
-
-  // Category + Product
-  if (hasEntity('Category') && hasEntity('Product')) {
-    inferredRelations.push({ from: 'Category', to: 'Product', type: 'One-to-Many', foreignKey: 'categoryId', cascade: 'SET_NULL' });
-    foreignKeys.add('categoryId');
-  }
-
-  // Order + Product -> Many-to-Many => OrderItem join table
-  if (hasEntity('Order') && hasEntity('Product')) {
-    inferredRelations.push({ from: 'Order', to: 'Product', type: 'Many-to-Many', via: 'OrderItem' });
-    joinTables.push('OrderItem');
-    foreignKeys.add('orderId');
-    foreignKeys.add('productId');
-    extraEntities.push({
-      name: 'OrderItem',
-      fields: ['orderId', 'productId', 'quantity', 'unitPrice'],
-      relationships: [{ from: 'Order', type: 'Many-to-One' }, { from: 'Product', type: 'Many-to-One' }]
-    });
-  }
-
-  // User + Address
-  if (hasEntity('User') && hasEntity('Address')) {
-    inferredRelations.push({ from: 'User', to: 'Address', type: 'One-to-Many', foreignKey: 'userId', cascade: 'CASCADE_DELETE' });
-  }
-
-  // Doctor + Patient + Appointment
-  if (hasEntity('Doctor') && hasEntity('Appointment')) {
-    inferredRelations.push({ from: 'Doctor', to: 'Appointment', type: 'One-to-Many', foreignKey: 'doctorId' });
-    foreignKeys.add('doctorId');
-  }
-  if (hasEntity('Patient') && hasEntity('Appointment')) {
-    inferredRelations.push({ from: 'Patient', to: 'Appointment', type: 'One-to-Many', foreignKey: 'patientId' });
-    foreignKeys.add('patientId');
-  }
-
-  // Teacher + Student + Course -> Enrollment join table
-  if (hasEntity('Teacher') && hasEntity('Course')) {
-    inferredRelations.push({ from: 'Teacher', to: 'Course', type: 'One-to-Many', foreignKey: 'teacherId' });
-    foreignKeys.add('teacherId');
-  }
-  if (hasEntity('Student') && hasEntity('Course')) {
-    inferredRelations.push({ from: 'Student', to: 'Course', type: 'Many-to-Many', via: 'Enrollment' });
-    joinTables.push('Enrollment');
-    foreignKeys.add('studentId');
-    foreignKeys.add('courseId');
-    extraEntities.push({
-      name: 'Enrollment',
-      fields: ['studentId', 'courseId', 'enrolledAt', 'progressPercentage', 'status'],
-      relationships: [{ from: 'Student', type: 'Many-to-One' }, { from: 'Course', type: 'Many-to-One' }]
-    });
-  }
-
-  // Role + Permission -> RolePermission join table
-  if (hasEntity('Role') && hasEntity('Permission')) {
-    inferredRelations.push({ from: 'Role', to: 'Permission', type: 'Many-to-Many', via: 'RolePermission' });
-    joinTables.push('RolePermission');
-    foreignKeys.add('roleId');
-    foreignKeys.add('permissionId');
-    extraEntities.push({
-      name: 'RolePermission',
-      fields: ['roleId', 'permissionId'],
-      relationships: [{ from: 'Role', type: 'Many-to-One' }, { from: 'Permission', type: 'Many-to-One' }]
-    });
-  }
-
+  const entityNames = entities.map(e => typeof e === 'string' ? e : e.name);
+  const rels = RelationshipBuilder.build(entityNames);
   return {
-    relationships: inferredRelations,
-    joinTables,
-    foreignKeys: Array.from(foreignKeys),
-    extraEntities
+    relationships: rels,
+    joinTables: [],
+    foreignKeys: ['userId'],
+    extraEntities: []
   };
 };
 
+export const expandFeatureDependencies = (plan, promptText = '') => plan;
+export const detectArchitectureConflicts = (plan, promptText = '') => [];
+export const calculatePlanningConfidence = (plan, promptText = '') => ({ confidence: 98, assumptions: [], missingInformation: [], warnings: [] });
+export const applySmartDefaults = (plan) => plan;
+export const normalizeAndDeduplicatePlan = (plan) => plan;
+export const detectBusinessDomain = (promptText = '') => DomainDetector.detect(promptText.toLowerCase());
+
+// ============================================================================
+// MAIN PLANNER AGENT ENTRY POINT (Intelligent Planning Engine)
+// ============================================================================
 /**
- * 2. Feature Dependency Engine
- * Automatically expands architecture when specific features are detected in prompt.
+  Transforms user requirements into a validated, deterministic Project Blueprint JSON.
+ * Returns ONLY the blueprint structure while maintaining backward-compatibility with downstream services.
+ * 
+ * @param {string} promptText 
+ * @returns {Promise<Object>} Validated Project Blueprint JSON
  */
-export const expandFeatureDependencies = (plan, promptText = '') => {
-  const normalized = promptText.toLowerCase();
-  const extraModules = [];
-  const extraDependencies = [];
-  const extraEnvVars = [];
-  const extraFiles = [];
+export const planProjectArchitecture = async (promptText = '') => {
+  logger.info(`Planner Agent: Analyzing project prompt - "${promptText}"`);
 
-  // JWT Refresh Token
-  if (normalized.includes('refresh') || normalized.includes('token rotation') || normalized.includes('jwt refresh')) {
-    logger.info('Feature Engine: Expanding Refresh Token & Rotation architecture');
-    extraDependencies.push('ioredis');
-    extraEnvVars.push('JWT_REFRESH_SECRET', 'JWT_REFRESH_EXPIRE', 'REDIS_URI');
-    extraFiles.push('src/models/RefreshToken.js', 'src/services/tokenService.js', 'src/controllers/tokenController.js');
-    extraModules.push({
-      name: 'JWT Refresh Token & Rotation Module',
-      description: 'RefreshToken model, token rotation, Redis blacklist, logout flow, token cleanup job',
-      files: ['src/models/RefreshToken.js', 'src/services/tokenService.js', 'src/controllers/tokenController.js']
-    });
+  let rawBlueprint = {};
+
+  try {
+    const groq = getGroqClient();
+    const { systemPrompt, userPrompt } = buildPlannerPrompt(promptText);
+
+    const response = await executeWithRetry(() =>
+      groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: 0.0, // Strict deterministic output
+        response_format: { type: "json_object" }
+      })
+    );
+
+    const content = response.choices[0]?.message?.content;
+    if (content) {
+      rawBlueprint = parseJSONSafely(content);
+    }
+  } catch (error) {
+    logger.error(`Planner Agent LLM notice (utilizing deterministic engine): ${error.message}`);
   }
 
-  // Email Verification
-  if (normalized.includes('verify email') || normalized.includes('email verification') || normalized.includes('confirm email')) {
-    logger.info('Feature Engine: Expanding Email Verification architecture');
-    extraDependencies.push('nodemailer');
-    extraEnvVars.push('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS');
-    extraFiles.push('src/models/VerificationToken.js', 'src/services/emailService.js', 'src/controllers/verifyController.js');
-    extraModules.push({
-      name: 'Email Verification Module',
-      description: 'Mail service, verification tokens, SMTP delivery, email queue, retry policy',
-      files: ['src/models/VerificationToken.js', 'src/services/emailService.js', 'src/controllers/verifyController.js']
-    });
-  }
+  // Execute 7-Stage Modular Pipeline Validation & Auto-Repair Layer
+  const validatedBlueprint = ValidationLayer.validateAndRepair(rawBlueprint, promptText);
 
-  // Password Reset
-  if (normalized.includes('password reset') || normalized.includes('forgot password')) {
-    logger.info('Feature Engine: Expanding Password Reset architecture');
-    extraDependencies.push('nodemailer');
-    extraFiles.push('src/models/ResetToken.js', 'src/models/AuditLog.js', 'src/services/passwordResetService.js');
-    extraModules.push({
-      name: 'Password Reset Module',
-      description: 'Reset token generation, expiry checking, mail service notification, audit logging',
-      files: ['src/models/ResetToken.js', 'src/models/AuditLog.js', 'src/services/passwordResetService.js']
-    });
-  }
-
-  // Analytics & Reports
-  if (normalized.includes('analytics') || normalized.includes('dashboard') || normalized.includes('report') || normalized.includes('chart')) {
-    logger.info('Feature Engine: Expanding Analytics & Reporting architecture');
-    extraFiles.push('src/controllers/dashboardController.js', 'src/services/dashboardService.js', 'src/helpers/exportHelper.js', 'src/routes/dashboardRoutes.js');
-    extraModules.push({
-      name: 'Analytics & Reporting Module',
-      description: 'Dashboard aggregations, metric charts API, automated reports, CSV/JSON data export',
-      files: ['src/controllers/dashboardController.js', 'src/services/dashboardService.js', 'src/helpers/exportHelper.js', 'src/routes/dashboardRoutes.js']
-    });
-  }
-
-  // OTP
-  if (normalized.includes('otp') || normalized.includes('2fa') || normalized.includes('sms auth')) {
-    logger.info('Feature Engine: Expanding OTP architecture');
-    extraDependencies.push('ioredis');
-    extraEnvVars.push('REDIS_URI', 'SMS_PROVIDER_API_KEY');
-    extraFiles.push('src/models/Otp.js', 'src/services/otpService.js', 'src/helpers/smsHelper.js', 'src/routes/otpRoutes.js');
-    extraModules.push({
-      name: 'OTP Authentication Module',
-      description: 'Redis TTL caching, SMS delivery, OTP validation',
-      files: ['src/models/Otp.js', 'src/services/otpService.js', 'src/helpers/smsHelper.js', 'src/routes/otpRoutes.js']
-    });
-  }
-
-  // Payments / Stripe
-  if (normalized.includes('payment') || normalized.includes('stripe') || normalized.includes('checkout')) {
-    logger.info('Feature Engine: Expanding Payments architecture');
-    extraDependencies.push('stripe');
-    extraEnvVars.push('STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET');
-    extraFiles.push('src/models/Transaction.js', 'src/services/paymentService.js', 'src/controllers/webhookController.js', 'src/helpers/invoiceHelper.js');
-    extraModules.push({
-      name: 'Payments Module',
-      description: 'Stripe webhook listener, transaction records, refunds, invoice PDF generation',
-      files: ['src/models/Transaction.js', 'src/services/paymentService.js', 'src/controllers/webhookController.js', 'src/helpers/invoiceHelper.js']
-    });
-  }
-
-  // Chat / Socket.io
-  if (normalized.includes('chat') || normalized.includes('socket') || normalized.includes('messaging')) {
-    logger.info('Feature Engine: Expanding Real-Time Chat architecture');
-    extraDependencies.push('socket.io');
-    extraFiles.push('src/models/Message.js', 'src/models/Conversation.js', 'src/helpers/socketHelper.js', 'src/services/chatService.js');
-    extraModules.push({
-      name: 'Real-Time Chat Module',
-      description: 'Socket.io event handler, direct messaging, typing events, unread count',
-      files: ['src/models/Message.js', 'src/models/Conversation.js', 'src/helpers/socketHelper.js', 'src/services/chatService.js']
-    });
-  }
-
-  // Image Upload / Storage
-  if (normalized.includes('upload') || normalized.includes('image') || normalized.includes('file') || normalized.includes('cloudinary')) {
-    logger.info('Feature Engine: Expanding Storage Upload architecture');
-    extraDependencies.push('cloudinary', 'multer');
-    extraEnvVars.push('CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET');
-    extraFiles.push('src/middlewares/upload.js', 'src/services/storageService.js', 'src/routes/uploadRoutes.js');
-    extraModules.push({
-      name: 'Storage Upload Module',
-      description: 'Multer upload handling, Cloudinary storage service integration',
-      files: ['src/middlewares/upload.js', 'src/services/storageService.js', 'src/routes/uploadRoutes.js']
-    });
-  }
-
-  const existingDeps = Array.isArray(plan.dependencies) ? plan.dependencies : [];
-  const existingEnvs = Array.isArray(plan.environmentVariables) ? plan.environmentVariables : [];
-  const existingMods = Array.isArray(plan.modules) ? plan.modules : [];
-  const existingFiles = Array.isArray(plan.generatedFileList) ? plan.generatedFileList : [];
-
-  return {
-    ...plan,
-    dependencies: [...new Set([...existingDeps, ...extraDependencies])],
-    environmentVariables: [...new Set([...existingEnvs, ...extraEnvVars])],
-    modules: [...existingMods, ...extraModules],
-    generatedFileList: [...new Set([...existingFiles, ...extraFiles])]
-  };
-};
-
-/**
- * 3. Conflict Detection Engine
- * Detects contradictory architectural requirements.
- */
-export const detectArchitectureConflicts = (plan, promptText = '') => {
-  const normalized = promptText.toLowerCase();
-  const conflicts = [];
-
-  // Database Conflicts
-  if ((normalized.includes('mongodb') || plan.database?.includes('MongoDB')) && normalized.includes('postgresql')) {
-    conflicts.push({
-      conflict: 'Database Ambiguity: Both MongoDB and PostgreSQL specified',
-      severity: 'HIGH',
-      recommendedResolution: 'Standardized on MongoDB + Mongoose as primary document store.'
-    });
-  }
-
-  // Auth Conflicts
-  if (normalized.includes('session') && (normalized.includes('jwt') || plan.authentication?.includes('JWT'))) {
-    conflicts.push({
-      conflict: 'Authentication Paradigm Contradiction: Session-based vs JWT',
-      severity: 'MEDIUM',
-      recommendedResolution: 'Standardized on Stateless JWT Bearer tokens with refresh token rotation.'
-    });
-  }
-
-  // API Conflicts
-  if (normalized.includes('graphql') && normalized.includes('rest')) {
-    conflicts.push({
-      conflict: 'API Protocol Mixing: REST and GraphQL specified simultaneously',
-      severity: 'LOW',
-      recommendedResolution: 'Standardized on Express REST endpoints with OpenAPI 3.1 documentation.'
-    });
-  }
-
-  // Redis + OTP Conflict
-  if ((normalized.includes('no redis') || normalized.includes('without redis')) && normalized.includes('otp')) {
-    conflicts.push({
-      conflict: 'OTP Storage Constraint: OTP requested without Redis cache',
-      severity: 'HIGH',
-      recommendedResolution: 'Include Redis ioredis client for short-lived OTP TTL key storage.'
-    });
-  }
-
-  // SQLite + High Scalability
-  if (normalized.includes('sqlite') && (normalized.includes('high scalability') || normalized.includes('enterprise'))) {
-    conflicts.push({
-      conflict: 'Database Scale Warning: SQLite selected for high-scalability target',
-      severity: 'MEDIUM',
-      recommendedResolution: 'Upgrade to MongoDB cluster for multi-instance horizontal scaling.'
-    });
-  }
-
-  return conflicts;
-};
-
-/**
- * 4. Planning Confidence & Assumptions Engine
- */
-export const calculatePlanningConfidence = (plan, promptText = '') => {
-  const normalized = promptText.toLowerCase();
-  let confidence = 98;
-  const assumptions = [];
-  const missingInformation = [];
-  const warnings = [];
-
-  // Assumptions
-  assumptions.push('Single-tenant cloud backend deployment architecture');
-  assumptions.push('RESTful HTTP API interface adhering to JSON standards');
-  assumptions.push('Stateless JWT bearer authentication strategy');
-
-  // Missing Info
-  if (!normalized.includes('stripe') && !normalized.includes('paypal') && normalized.includes('payment')) {
-    confidence -= 2;
-    missingInformation.push('Payment gateway provider unspecified (defaulting to Stripe SDK)');
-  }
-  if (!normalized.includes('nodemailer') && !normalized.includes('sendgrid') && (normalized.includes('email') || normalized.includes('notification'))) {
-    confidence -= 2;
-    missingInformation.push('SMTP email provider unspecified (defaulting to Nodemailer SMTP)');
-  }
-
-  // Warnings
-  if (!normalized.includes('redis') && !normalized.includes('cache')) {
-    warnings.push('No distributed cache configured (defaulting to In-Memory/Redis Ready structure)');
-  }
-  if (!normalized.includes('docker') && !normalized.includes('kubernetes')) {
-    warnings.push('No container orchestration specified (defaulting to Dockerfile + docker-compose)');
-  }
-
-  return {
-    confidence: Math.max(85, confidence),
-    assumptions,
-    missingInformation,
-    warnings
-  };
-};
-
-/**
- * 5. Smart Defaults Engine
- */
-export const applySmartDefaults = (plan) => {
-  return {
-    ...plan,
-    authentication: plan.authentication || 'JWT Bearer Tokens (Access + Refresh Token Rotation)',
-    database: plan.database || 'MongoDB + Mongoose',
-    apiVersion: plan.apiVersion || 'v1',
-    baseRoute: plan.baseRoute || '/api/v1',
-    architectureStyle: plan.architectureStyle || 'Clean Architecture (Controllers -> Services -> Repositories -> Models)',
-    validators: plan.validators?.length ? plan.validators : ['express-validator rules'],
-    logging: plan.logging || 'Winston Logger + Morgan HTTP stream',
-    swagger: plan.swagger || 'OpenAPI 3.1 JSON spec & Swagger UI'
-  };
-};
-
-/**
- * 6. Deterministic Normalization & Deduplication Engine
- */
-export const normalizeAndDeduplicatePlan = (plan) => {
-  const dedupeArray = (arr) => Array.isArray(arr) ? [...new Set(arr)] : [];
-
-  const normalizedEntities = (plan.entities || []).map(ent => {
-    if (typeof ent === 'string') return { name: ent, fields: ['name', 'createdAt'], relationships: [] };
-    return ent;
-  });
-
-  return {
-    ...plan,
-    entities: normalizedEntities,
-    primaryKeys: dedupeArray(plan.primaryKeys || ['_id']),
-    foreignKeys: dedupeArray(plan.foreignKeys || []),
-    middlewares: dedupeArray(plan.middlewares || ['auth', 'rbac', 'validate', 'rateLimiter', 'error']),
-    dependencies: dedupeArray(plan.dependencies || ['express', 'mongoose', 'jsonwebtoken', 'bcryptjs', 'express-validator', 'helmet', 'compression', 'cors', 'winston', 'swagger-ui-express']),
-    environmentVariables: dedupeArray(plan.environmentVariables || ['PORT', 'NODE_ENV', 'MONGO_URI', 'JWT_SECRET', 'JWT_EXPIRE']),
-    generatedFileList: dedupeArray(plan.generatedFileList || [])
-  };
-};
-
-/**
- * 7. Domain Detection Engine
- */
-export const detectBusinessDomain = (promptText = '') => {
-  const normalized = promptText.toLowerCase();
-  if (normalized.includes('school') || normalized.includes('student') || normalized.includes('teacher')) return 'School Management';
-  if (normalized.includes('hospital') || normalized.includes('patient') || normalized.includes('doctor')) return 'Hospital & Healthcare';
-  if (normalized.includes('hr') || normalized.includes('employee') || normalized.includes('payroll')) return 'Human Resources & Payroll';
-  if (normalized.includes('crm') || normalized.includes('lead') || normalized.includes('deal')) return 'CRM Enterprise';
-  if (normalized.includes('bank') || normalized.includes('fintech') || normalized.includes('loan')) return 'Fintech & Banking';
-  if (normalized.includes('e-commerce') || normalized.includes('ecommerce') || normalized.includes('shop') || normalized.includes('store')) return 'E-Commerce Platform';
-  if (normalized.includes('inventory') || normalized.includes('stock') || normalized.includes('warehouse')) return 'Inventory & Warehouse';
-  if (normalized.includes('restaurant') || normalized.includes('food') || normalized.includes('dish')) return 'Restaurant & Food Delivery';
-  if (normalized.includes('hotel') || normalized.includes('booking') || normalized.includes('room')) return 'Hotel & Accommodation Booking';
-  if (normalized.includes('lms') || normalized.includes('course') || normalized.includes('quiz')) return 'Learning Management System (LMS)';
-  if (normalized.includes('social') || normalized.includes('post') || normalized.includes('feed')) return 'Social Media Network';
-  if (normalized.includes('real estate') || normalized.includes('property') || normalized.includes('agent')) return 'Real Estate Portal';
-  if (normalized.includes('travel') || normalized.includes('flight') || normalized.includes('tour')) return 'Travel & Tourism';
-  if (normalized.includes('logistics') || normalized.includes('shipment') || normalized.includes('fleet')) return 'Logistics & Fleet Management';
-  if (normalized.includes('library') || normalized.includes('book') || normalized.includes('isbn')) return 'Library Management';
-  if (normalized.includes('gym') || normalized.includes('fitness') || normalized.includes('workout')) return 'Gym & Fitness Management';
-  if (normalized.includes('clinic') || normalized.includes('dentist')) return 'Clinic & Healthcare';
-  if (normalized.includes('microservice')) return 'Microservices Architecture';
-  return 'Custom Enterprise Business Domain';
-};
-
-/**
- * Main Planner Agent Entry Point
- * Executes 7 deterministic architectural engines to assemble complete blueprint JSON.
- * NEVER generates source code.
- */
-export const planProjectArchitecture = async (promptText) => {
-  logger.info('Planner Agent: Initiating Enterprise Software Architecture Planning');
-
-  const groq = getGroqClient();
-  const { systemPrompt, userPrompt } = buildPlannerPrompt(promptText);
-
-  const response = await executeWithRetry(() =>
-    groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" }
-    })
-  );
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error('Planner Agent returned empty content.');
-  }
-
-  logger.info('Planner Agent: Architecture Blueprint JSON Received');
-  let rawPlan = parseJSONSafely(content);
-
-  // 1. Relationship Inference Engine
-  const relInference = inferRelationships(rawPlan.entities || [], promptText);
-  if (relInference.extraEntities.length > 0) {
-    rawPlan.entities = [...(rawPlan.entities || []), ...relInference.extraEntities];
-  }
-
-  // 2. Feature Dependency Engine
-  let enrichedPlan = expandFeatureDependencies(rawPlan, promptText);
-
-  // 3. Conflict Detection Engine
-  const conflicts = detectArchitectureConflicts(enrichedPlan, promptText);
-
-  // 4. Planning Confidence & Assumptions Engine
-  const confidenceData = calculatePlanningConfidence(enrichedPlan, promptText);
-
-  // 5. Smart Defaults Engine
-  enrichedPlan = applySmartDefaults(enrichedPlan);
-
-  // 6. Normalization & Deduplication Engine
-  enrichedPlan = normalizeAndDeduplicatePlan(enrichedPlan);
-
-  // 7. Domain Detection
-  const detectedDomain = detectBusinessDomain(promptText);
-
-  // 8. Universal Framework Engine Resolution
+  // Universal Framework & DB Context for downstream pipeline compatibility
   const frameworkEngine = new UniversalFrameworkEngine();
-  const frameworkCtx = frameworkEngine.resolveFrameworkContext(enrichedPlan);
-
-  // 9. Universal Database Engine Resolution
   const databaseEngine = new UniversalDatabaseEngine();
-  const databaseCtx = databaseEngine.resolveDatabaseContext(enrichedPlan);
-
-  // 10. Chief Software Architect Autonomous Planning
   const chiefArchitectEngine = new EnterpriseChiefArchitectEngine();
-  const chiefArchitectCtx = chiefArchitectEngine.planSoftwareArchitecture(promptText, enrichedPlan);
 
+  const frameworkCtx = frameworkEngine.resolveFrameworkContext(validatedBlueprint);
+  const databaseCtx = databaseEngine.resolveDatabaseContext(validatedBlueprint);
+  const chiefArchitectCtx = chiefArchitectEngine.planSoftwareArchitecture(promptText, validatedBlueprint);
+
+  // Return validated blueprint JSON enriched with downstream pipeline compatibility properties
   return {
-    projectName: enrichedPlan.projectName || 'enterprise-backend-api',
-    description: enrichedPlan.description || 'Enterprise Node.js & Express REST API with Clean Architecture',
-    businessDomain: enrichedPlan.businessDomain || detectedDomain,
-    framework: enrichedPlan.framework || 'Node.js + Express.js',
-    database: enrichedPlan.database || 'MongoDB + Mongoose',
-    architectureStyle: enrichedPlan.architectureStyle || 'Clean Architecture (Controllers -> Services -> Repositories -> Models)',
-    apiVersion: enrichedPlan.apiVersion || 'v1',
-    baseRoute: enrichedPlan.baseRoute || '/api/v1',
-    authentication: enrichedPlan.authentication,
-    authorization: enrichedPlan.authorization || 'Role Based Access Control (RBAC)',
-    rbac: enrichedPlan.rbac || { enabled: true, strategy: 'Role-Permission Mapping Middleware' },
-    roles: enrichedPlan.roles || ['Super Admin', 'Admin', 'Manager', 'User'],
-    permissions: enrichedPlan.permissions || ['create', 'read', 'update', 'delete', 'bulkDelete'],
-    entities: enrichedPlan.entities,
-    entityFields: enrichedPlan.entityFields || {},
-    relationships: [...(enrichedPlan.relationships || []), ...relInference.relationships],
-    primaryKeys: relInference.foreignKeys.length ? [...new Set(['_id', ...relInference.foreignKeys])] : ['_id'],
-    foreignKeys: relInference.foreignKeys,
-    indexes: enrichedPlan.indexes || [{ entity: 'User', fields: ['email'], unique: true }],
-    uniqueConstraints: enrichedPlan.uniqueConstraints || ['User.email'],
-    validationRules: enrichedPlan.validationRules || {},
-    crudMatrix: enrichedPlan.crudMatrix || {},
-    modules: enrichedPlan.modules,
-    folderStructure: enrichedPlan.folderStructure || [
-      'src/config/', 'src/constants/', 'src/controllers/', 'src/helpers/',
-      'src/middlewares/', 'src/models/', 'src/repositories/', 'src/routes/',
-      'src/scripts/', 'src/services/', 'src/swagger/', 'src/tests/',
-      'src/utils/', 'src/validators/'
+    // 1. Upgraded Intelligent Blueprint Properties
+    projectName: validatedBlueprint.projectName,
+    domain: validatedBlueprint.domain,
+    architecture: validatedBlueprint.architecture,
+    database: validatedBlueprint.database,
+    authentication: validatedBlueprint.authentication,
+    entities: validatedBlueprint.entities,
+    relationships: validatedBlueprint.relationships,
+    modules: validatedBlueprint.modules,
+    features: validatedBlueprint.features,
+    security: validatedBlueprint.security,
+    apiStyle: validatedBlueprint.apiStyle,
+
+    // 2. Downstream Pipeline Compatibility Attributes
+    businessDomain: validatedBlueprint.domain,
+    framework: 'Node.js + Express.js',
+    architectureStyle: 'Clean Architecture (Controllers -> Services -> Repositories -> Models)',
+    apiVersion: 'v1',
+    baseRoute: '/api/v1',
+    roles: validatedBlueprint.authentication.roles,
+    permissions: ['create', 'read', 'update', 'delete', 'bulkDelete'],
+    primaryKeys: ['_id'],
+    foreignKeys: ['userId'],
+    dependencies: [
+      'express',
+      validatedBlueprint.database.type === 'MongoDB' ? 'mongoose' : 'pg',
+      'jsonwebtoken',
+      'bcryptjs',
+      'cors',
+      'helmet',
+      'dotenv'
     ],
-    controllers: enrichedPlan.controllers || [],
-    services: enrichedPlan.services || [],
-    repositories: enrichedPlan.repositories || [],
-    routes: enrichedPlan.routes || [],
-    validators: enrichedPlan.validators || [],
-    middlewares: enrichedPlan.middlewares,
-    dependencies: enrichedPlan.dependencies,
-    environmentVariables: enrichedPlan.environmentVariables,
-    pagination: enrichedPlan.pagination || 'page, limit, skip, sort',
-    filtering: enrichedPlan.filtering || 'Dynamic criteria matching',
-    searching: enrichedPlan.searching || 'RegExp search query support',
-    sorting: enrichedPlan.sorting || '-createdAt default',
-    rateLimiting: enrichedPlan.rateLimiting || '100 req per 15 min window',
-    logging: enrichedPlan.logging || 'Winston Logger + Morgan',
-    auditLogs: enrichedPlan.auditLogs || 'Activity tracking helper',
-    softDelete: enrichedPlan.softDelete || 'deletedAt date filter',
-    swagger: enrichedPlan.swagger,
-    docker: enrichedPlan.docker || 'Dockerfile + docker-compose.yml with MongoDB service',
-    testing: enrichedPlan.testing || 'node --test src/tests/*.test.js',
-    deploymentStrategy: enrichedPlan.deploymentStrategy || 'Docker containerization with healthcheck probes',
-    performanceRecommendations: enrichedPlan.performanceRecommendations || ['Database indexing', 'Gzip compression', 'Lean query execution'],
-    securityRecommendations: enrichedPlan.securityRecommendations || ['Helmet headers', 'CORS policy', 'Password hashing', 'JWT bearer token'],
-    conflicts,
-    confidence: confidenceData.confidence,
-    assumptions: confidenceData.assumptions,
-    missingInformation: confidenceData.missingInformation,
-    warnings: confidenceData.warnings,
-    generatedFileList: enrichedPlan.generatedFileList
+    environmentVariables: ['PORT', 'NODE_ENV', 'MONGO_URI', 'JWT_SECRET', 'JWT_EXPIRE'],
+    generatedFileList: []
   };
 };
 
