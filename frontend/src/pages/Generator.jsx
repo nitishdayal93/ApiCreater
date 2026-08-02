@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database
+  Send, RefreshCw, FileCode, CheckCircle2, Play, Download, Code2, ArrowUp, Database, Plus, Globe, Sparkles
 } from 'lucide-react';
 import ChatBubble from '../components/ChatBubble';
 import ProjectTree from '../components/generator/ProjectTree';
@@ -74,9 +74,26 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
   }, [activeProject, activeChatId]);
 
   const samplePrompts = [
-    "create student management rest api",
-    "ecommerce backend api with auth and products",
-    "blogging service api with posts and comments"
+    {
+      title: "Student Management API",
+      subtitle: "REST routes, models & auth for student portal",
+      prompt: "create student management rest api"
+    },
+    {
+      title: "E-Commerce Backend",
+      subtitle: "Products catalog, cart, orders & payments",
+      prompt: "ecommerce backend api with auth and products"
+    },
+    {
+      title: "Blogging & Comments Service",
+      subtitle: "Posts, tags, user profiles & comments",
+      prompt: "blogging service api with posts and comments"
+    },
+    {
+      title: "Notification System API",
+      subtitle: "User notification logs, preferences & events",
+      prompt: "create user notification system api with logs"
+    }
   ];
 
   const handleSend = async (customPrompt) => {
@@ -218,26 +235,24 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
 
         {/* CONDITION 1: ChatGPT-Style Centered Landing Page (Before Prompt Sent) */}
         {isInitialState ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto w-full space-y-8 animate-in fade-in zoom-in-95 duration-300">
-            {/* Hero Heading */}
-            <div className="space-y-4 flex flex-col items-center">
-              {/* 3D Glass Logo Badge */}
-              <div className="w-16 h-16 rounded-2xl bg-[#091510] border-2 border-emerald-500/90 flex items-center justify-center shadow-2xl shadow-emerald-500/40 text-emerald-400 font-black hover:scale-110 hover:border-emerald-400 transition-all duration-300 group cursor-pointer relative overflow-hidden my-1">
-                <div className="absolute inset-0 bg-emerald-500/10 rounded-2xl blur-md"></div>
-                <Code2 className="w-8 h-8 text-emerald-400 stroke-[2.5] relative z-10 group-hover:rotate-6 transition-transform" />
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto w-full space-y-6 animate-in fade-in zoom-in-95 duration-300">
+            {/* Hero Heading - ChatGPT Style */}
+            <div className="space-y-2.5 flex flex-col items-center">
+              <div className="w-12 h-12 rounded-full bg-[#181d26] border border-slate-700/80 flex items-center justify-center text-emerald-400 shadow-xl mb-1">
+                <Sparkles className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
               </div>
 
-              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight uppercase">
-                WHERE SHOULD WE BEGIN?
+              <h1 className="text-2xl md:text-3xl font-semibold text-white tracking-tight">
+                What backend API do you want to build?
               </h1>
 
-              <p className="text-xs text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
-                Describe your requirements in plain English. OpenAPI AI will plan architecture, organize file trees, write full REST CRUD controllers, and package ZIP downloads.
+              <p className="text-xs text-slate-400 font-normal max-w-md mx-auto leading-relaxed">
+                Describe your requirements. OpenAPI AI will plan REST controllers, models, architecture, and package a downloadable ZIP archive.
               </p>
             </div>
 
             {/* ChatGPT Centered Input Box */}
-            <div className="w-full bg-[#0d141e]/90 border border-slate-700/60 focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-3xl p-4 shadow-2xl transition-all space-y-2">
+            <div className="w-full bg-[#141a23] border border-slate-700/60 focus-within:border-slate-500/80 rounded-[26px] p-3.5 shadow-2xl transition-all flex flex-col justify-between min-h-[120px]">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -247,61 +262,83 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                     handleSend();
                   }
                 }}
-                placeholder="Describe your backend API requirements... (e.g. create student management rest api)"
-                rows={3}
-                className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-1"
+                placeholder="Ask OpenAPI AI to generate your backend API..."
+                rows={2}
+                className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-2 py-1"
               />
 
-              <div className="flex items-center justify-between pt-1">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-xl text-[11px] text-slate-300 font-medium">
-                    <Database className="w-3 h-3 text-emerald-400" />
+              <div className="flex items-center justify-between pt-2 px-1">
+                {/* Left ChatGPT Toolbar */}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Add context or attachment"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Search API templates"
+                  >
+                    <Globe className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5 bg-[#1c2330] hover:bg-[#232c3d] border border-slate-700/60 px-3 py-1 rounded-full text-xs text-slate-200 font-medium cursor-pointer transition-colors">
+                    <Database className="w-3.5 h-3.5 text-emerald-400" />
                     <select
                       value={database}
                       onChange={(e) => setDatabase(e.target.value)}
-                      className="bg-transparent focus:outline-none text-slate-200 cursor-pointer text-[11px] font-semibold"
+                      className="bg-transparent focus:outline-none text-slate-200 cursor-pointer text-xs font-medium pr-1"
                     >
-                      <option value="MongoDB" className="bg-[#0b1017] text-slate-200">MongoDB</option>
-                      <option value="PostgreSQL" className="bg-[#0b1017] text-slate-200">PostgreSQL</option>
-                      <option value="MySQL" className="bg-[#0b1017] text-slate-200">MySQL</option>
-                      <option value="SQLite" className="bg-[#0b1017] text-slate-200">SQLite</option>
+                      <option value="MongoDB" className="bg-[#141a23] text-slate-200">MongoDB</option>
+                      <option value="PostgreSQL" className="bg-[#141a23] text-slate-200">PostgreSQL</option>
+                      <option value="MySQL" className="bg-[#141a23] text-slate-200">MySQL</option>
+                      <option value="SQLite" className="bg-[#141a23] text-slate-200">SQLite</option>
                     </select>
                   </div>
-
-                  <span className="hidden sm:inline text-[11px] text-slate-500 font-medium">
-                    <kbd className="px-1.5 py-0.5 bg-slate-800/70 text-slate-400 rounded text-[10px]">Enter ↵</kbd> to generate
-                  </span>
                 </div>
 
+                {/* Right ChatGPT Dynamic Send Circle Button */}
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className="w-9 h-9 rounded-full bg-[#00E676] hover:bg-[#00C853] disabled:bg-slate-800 text-black disabled:text-slate-600 flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 disabled:shadow-none active:scale-95"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    prompt.trim()
+                      ? 'bg-[#00E676] text-black hover:bg-[#00C853] shadow-md active:scale-95 cursor-pointer'
+                      : 'bg-[#252d3a] text-slate-500 cursor-not-allowed'
+                  }`}
                   title="Generate API"
                 >
-                  <ArrowUp className="w-5 h-5 stroke-[2.5]" />
+                  <ArrowUp className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
             </div>
 
-            {/* Sample Prompts Suggestion Cards */}
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {/* Sample Prompts Suggestion Cards - ChatGPT Grid Style */}
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
               {samplePrompts.map((preset, idx) => (
                 <button
                   key={idx}
-                  onClick={() => handleSend(preset)}
-                  className="p-4 bg-[#080d14] border border-slate-800/90 hover:border-emerald-500/50 hover:bg-[#0d131c] rounded-2xl text-left transition-all group shadow-md"
+                  onClick={() => handleSend(preset.prompt)}
+                  className="p-3.5 bg-[#121721] hover:bg-[#181f2c] border border-slate-800/90 hover:border-slate-600 rounded-2xl text-left transition-all group shadow-sm flex flex-col justify-between"
                 >
-                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                    <span>SUGGESTED PROMPT</span>
-                    <span className="text-emerald-500/40 group-hover:text-emerald-400 transition-colors">→</span>
+                  <div className="text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                    {preset.title}
                   </div>
-                  <div className="text-xs font-semibold text-slate-300 group-hover:text-white line-clamp-2 leading-relaxed">
-                    {preset}
+                  <div className="text-[11px] text-slate-400 font-normal line-clamp-1 mt-0.5">
+                    {preset.subtitle}
                   </div>
                 </button>
               ))}
             </div>
+
+            {/* Footer Disclaimer */}
+            <p className="text-[11px] text-slate-500 font-normal pt-2">
+              OpenAPI AI can make mistakes. Verify important API configurations before deployment.
+            </p>
           </div>
         ) : (
           /* CONDITION 2: Active Chat Stream View (After Prompt Sent) */
@@ -327,8 +364,16 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
             </div>
 
             {/* Bottom Input Bar for Active Chat */}
-            <div className="p-4 bg-[#090d13] border-t border-slate-800/80 shrink-0">
-              <div className="bg-[#0d141e]/90 border border-slate-700/60 focus-within:border-emerald-500/70 focus-within:ring-2 focus-within:ring-emerald-500/20 rounded-3xl p-3 shadow-xl transition-all flex items-end gap-2">
+            <div className="p-3 bg-[#06090e] border-t border-slate-800/80 shrink-0">
+              <div className="max-w-3xl mx-auto w-full bg-[#141a23] border border-slate-700/60 focus-within:border-slate-500/80 rounded-[26px] p-2.5 shadow-xl transition-all flex items-center gap-2">
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors shrink-0"
+                  title="Add context"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
@@ -338,17 +383,22 @@ export default function Generator({ onProjectGenerated, activeProject, activeCha
                       handleSend();
                     }
                   }}
-                  placeholder="Ask a follow-up or specify changes... (e.g. add JWT authentication)"
-                  rows={2}
-                  className="flex-1 bg-transparent text-xs text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-1 py-1"
+                  placeholder="Ask a follow-up or specify changes..."
+                  rows={1}
+                  className="flex-1 bg-transparent text-sm text-slate-100 placeholder-slate-400 focus:outline-none resize-none font-normal leading-relaxed px-1 py-1 max-h-32"
                 />
+
                 <button
                   onClick={() => handleSend()}
                   disabled={isGenerating || !prompt.trim()}
-                  className="w-8 h-8 rounded-full bg-[#00E676] hover:bg-[#00C853] disabled:bg-slate-800 text-black disabled:text-slate-600 flex items-center justify-center transition-all shadow-md shadow-emerald-500/20 disabled:shadow-none active:scale-95 shrink-0"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                    prompt.trim()
+                      ? 'bg-[#00E676] text-black hover:bg-[#00C853] shadow-md active:scale-95 cursor-pointer'
+                      : 'bg-[#252d3a] text-slate-500 cursor-not-allowed'
+                  }`}
                   title="Send"
                 >
-                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                  <ArrowUp className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
             </div>
